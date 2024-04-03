@@ -66,6 +66,8 @@ const (
 	OSS_PROVIDER_CROWD_SEC
 	OSS_PROVIDER_SHODAN
 	OSS_PROVIDER_IP_WHO_IS
+	OSS_PROVIDER_CRIMINAL_IP
+	OSS_PROVIDER_IP_INFO
 )
 
 func (d *Directives) ToProto() *protoServices.Directives {

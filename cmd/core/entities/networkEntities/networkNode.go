@@ -20,6 +20,9 @@ type NetworkNode struct {
 
 	Scans []NetworkNodeScan `json:"Scans" gorm:"foreignKey:NodeUUID"`
 
+	// Profile is used to represent all collected data on selected entity
+	Profile *NetworkNodeProfile `json:"Profile,omitempty" gorm:"-"`
+
 	CreatedAt time.Time      `json:"CreatedAt"`
 	UpdatedAt time.Time      `json:"UpdatedAt"`
 	DeletedAt gorm.DeletedAt `json:"DeletedAt,omitempty" gorm:"index"`

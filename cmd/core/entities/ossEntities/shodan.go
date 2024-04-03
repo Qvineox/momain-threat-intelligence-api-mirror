@@ -35,6 +35,7 @@ type ShodanHostScanBody struct {
 }
 
 func (report ShodanHostScanBody) GetRiskScore() *uint8 {
-	var score uint8 = 50
+	var score = uint8(25.)
+
 	return &score
 }

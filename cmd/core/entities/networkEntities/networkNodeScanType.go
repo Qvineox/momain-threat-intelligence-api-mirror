@@ -26,6 +26,9 @@ const (
 	SCAN_TYPE_OSS_SHODAN_IP            = 301
 	SCAN_TYPE_OSS_CS_IP                = 401
 	SCAN_TYPE_OSS_IPWH_IP              = 501
+	SCAN_TYPE_OSS_CRIM_IP              = 601
+	SCAN_TYPE_OSS_CRIM_DOMAIN          = 602
+	SCAN_TYPE_OSS_INFO_IP              = 701
 )
 
 var DefaultNetworkNodeScanTypes = []NetworkNodeScanType{
@@ -78,5 +81,20 @@ var DefaultNetworkNodeScanTypes = []NetworkNodeScanType{
 		ID:          uint64(SCAN_TYPE_OSS_IPWH_IP),
 		Name:        "IPWhoIs IP",
 		Description: "Данные об IP получены из запроса к API IPWhoIS",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_OSS_CRIM_IP),
+		Name:        "CriminalIP IP",
+		Description: "Данные об IP получены из запроса к API CriminalIP",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_OSS_CRIM_DOMAIN),
+		Name:        "CriminalIP Domain",
+		Description: "Данные о домене получены из запроса к API CriminalIP",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_OSS_INFO_IP),
+		Name:        "IPInfo IP",
+		Description: "Данные об IP получены из запроса к API IPInfo",
 	},
 }

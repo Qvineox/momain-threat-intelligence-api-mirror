@@ -50,6 +50,10 @@ loop:
 				routines[3].input <- msg
 			case 5:
 				routines[4].input <- msg
+			case 6:
+				routines[5].input <- msg
+			case 7:
+				routines[6].input <- msg
 			default:
 				slog.Warn("unsupported scan type message received")
 			}
@@ -59,10 +63,10 @@ loop:
 	wg.Wait() // waiting for all transactions to end
 }
 
-func (h *OSSJobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup) [5]ossProviderRoutine {
-	routines := [5]ossProviderRoutine{}
+func (h *OSSJobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup) [7]ossProviderRoutine {
+	routines := [7]ossProviderRoutine{}
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 7; i++ {
 		ch := make(chan *protoServices.TargetAuditReport, 100)
 
 		routines[i] = ossProviderRoutine{

@@ -130,6 +130,37 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 
 		scan.RiskScore = content.GetRiskScore()
 		break
+
+	case SCAN_TYPE_OSS_CRIM_IP:
+		content := ossEntities.CriminalIPIPScanBody{}
+		err = json.Unmarshal(data, &content)
+		if err != nil {
+			return err
+		}
+
+		scan.RiskScore = content.GetRiskScore()
+		break
+
+	case SCAN_TYPE_OSS_CRIM_DOMAIN:
+		content := ossEntities.CriminalIPDomainScanBody{}
+		err = json.Unmarshal(data, &content)
+		if err != nil {
+			return err
+		}
+
+		scan.RiskScore = content.GetRiskScore()
+		break
+
+	case SCAN_TYPE_OSS_INFO_IP:
+		content := ossEntities.IPInfoIPScanBody{}
+		err = json.Unmarshal(data, &content)
+		if err != nil {
+			return err
+		}
+
+		scan.RiskScore = content.GetRiskScore()
+		break
+
 	// TODO: add compacting, remove redundant or null (N/A, or other) fields
 	default:
 		slog.Warn("unsupported marshal type")

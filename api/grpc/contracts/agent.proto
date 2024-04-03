@@ -10,6 +10,8 @@ option go_package = "domain_threat_intelligence_api/api/proto/protoServices";
 // ref: https://github.com/grpc/grpc-go/blob/master/examples/features/metadata/server/main.go
 // ref: https://grpc.io/docs/guides/metadata/
 
+// protoc --go_out=../protoServices --go_opt=paths=source_relative --go-grpc_out=../protoServices --go-grpc_opt=paths=source_relative agent.proto
+
 service Connection {
   rpc Hello(SecurityToken) returns (SecurityToken); // describes initial connection sequence, key validation and exchange
 }
@@ -128,6 +130,8 @@ enum OSSProvider {
   OSS_PROVIDER_CROWD_SEC = 2;
   OSS_PROVIDER_SHODAN = 3;
   OSS_PROVIDER_IP_WHO_IS = 4;
+  OSS_PROVIDER_CRIMINAL_IP = 5;
+  OSS_PROVIDER_IP_INFO = 6;
 }
 
 // scanning using NMAP binding
@@ -199,6 +203,9 @@ enum ScanType {
   SCAN_TYPE_OSS_SHODAN_IP = 301;
   SCAN_TYPE_OSS_CS_IP = 401;
   SCAN_TYPE_OSS_IPWH_IP = 501;
+  SCAN_TYPE_OSS_CRM_IP = 601;
+  SCAN_TYPE_OSS_CRM_DOMAIN = 602;
+  SCAN_TYPE_OSS_INFO_IP = 701;
 }
 
 // TargetAuditReport is used to represent Task return values. Task type and other data should be added to header.
