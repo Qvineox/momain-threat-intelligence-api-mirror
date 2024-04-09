@@ -46,7 +46,7 @@ func NewSystemStateRouter(service core.ISystemStateService, path *gin.RouterGrou
 //
 // @Summary            View application dynamic config
 // @Description        Gets info about current dynamic application config
-// @Tags               Configuration
+// @Tags              Configuration
 // @Security           ApiKeyAuth
 // @Router             /system/dynamic [get]
 // @ProduceAccessToken json

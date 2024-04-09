@@ -70,7 +70,7 @@ func StartApp(staticCfg configs.StaticConfig, dynamicCfg *configs.DynamicConfigP
 	agentsRepo := repos.NewAgentsRepoImpl(dbConn)
 
 	domainServices.JobsService = services.NewJobsServiceImpl(jobsRepo)
-	domainServices.NetworkNodesService = services.NewNodesServiceImpl(nodesRepo)
+	domainServices.NetworkNodesService = services.NewNodesServiceImpl(nodesRepo, domainServices.BlacklistService)
 
 	queue := jobEntities.NewQueue(staticCfg.Scheduling.QueueLimit)
 	jobScheduler, err := scheduler.NewScheduler(

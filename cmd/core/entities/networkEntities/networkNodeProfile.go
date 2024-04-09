@@ -2,6 +2,7 @@ package networkEntities
 
 import (
 	"domain_threat_intelligence_api/cmd/core/entities/ossEntities"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -12,19 +13,19 @@ import (
 // NetworkNodeProfile represents single compiled report about network node
 type NetworkNodeProfile struct {
 	// owner identity data
-	ASNs          []scanStringValue `json:"ASNs"`
-	ISPs          []scanStringValue `json:"ISPs"`
-	JARMs         []scanStringValue `json:"JARMs"`
-	Organisations []scanStringValue `json:"Organisations"`
+	ASN          []scanStringValue `json:"ASN"`
+	ISP          []scanStringValue `json:"ISP"`
+	JARM         []scanStringValue `json:"JARM"`
+	Organisation []scanStringValue `json:"Organisation"`
 
 	// tagging and clusterization
-	Categories []scanStringValue `json:"Categories"`
-	Tags       []scanStringValue `json:"Tags"`
+	Category []scanStringValue `json:"Category"`
+	Tag      []scanStringValue `json:"Tag"`
 
 	// geographical data
-	Regions   []scanStringValue `json:"Regions"`
-	Countries []scanStringValue `json:"Countries"`
-	Cities    []scanStringValue `json:"Cities"`
+	Region    []scanStringValue `json:"Region"`
+	Country   []scanStringValue `json:"Country"`
+	City      []scanStringValue `json:"City"`
 	Longitude float64           `json:"Longitude"`
 	Latitude  float64           `json:"Latitude"`
 
@@ -35,12 +36,21 @@ type NetworkNodeProfile struct {
 	DomainAge      []scanTimeValue   `json:"DomainAge"`
 	IsDomainParked []scanBoolValue   `json:"IsDomainParked"`
 
+	// domain records data
+	ARecords     []domainRecordValue `json:"ARecords"`
+	AAAARecords  []domainRecordValue `json:"AAAARecords"`
+	CNameRecords []domainRecordValue `json:"CNameRecords"`
+	MXRecords    []domainRecordValue `json:"MXRecords"`
+	NSRecords    []domainRecordValue `json:"NSRecords"`
+	PTRRecords   []domainRecordValue `json:"PTRRecords"`
+	SOARecords   []domainRecordValue `json:"SOARecords"`
+
 	// blacklists data
 	IsBlacklisted      bool                `json:"IsBlacklisted"`      // IsBlacklisted for internal blacklisting
 	ExternalBlacklists []externalBlacklist `json:"ExternalBlacklists"` // ExternalBlacklists from external blacklists (i.e. VirusTotal)
 
 	// external scoring
-	ProviderScores []scanIntValue `json:"ProviderScores"`
+	ProviderScore []scanIntValue `json:"ProviderScore"`
 
 	// internal scoring (ml analytics)
 	DGAScore              float32    `json:"DGAScore"`
@@ -51,9 +61,11 @@ type NetworkNodeProfile struct {
 	LatestScoreEvaluation *time.Time `json:"LatestScoreEvaluation"`
 
 	// anonymity tools usage
-	IsVPN   []scanBoolValue `json:"IsVPN"`
-	IsProxy []scanBoolValue `json:"IsProxy"`
-	IsTOR   []scanBoolValue `json:"IsTOR"`
+	IsVPN     []scanBoolValue `json:"IsVPN"`
+	IsProxy   []scanBoolValue `json:"IsProxy"`
+	IsTOR     []scanBoolValue `json:"IsTOR"`
+	IsDarkWeb []scanBoolValue `json:"IsDarkWeb"`
+	IsHosting []scanBoolValue `json:"IsHosting"`
 
 	// mailing system
 	IsMailValid  []scanBoolValue `json:"IsMailValid"`
@@ -84,58 +96,76 @@ type NetworkNodeProfile struct {
 	// host data
 	OpenPorts map[uint64]portData `json:"OpenPorts"`
 
+	// vulnerabilities
+	// todo: add vulnerability data from CrowdSec, CriminalIP
+
+	// certificates
+	// todo: add certificates data from CrowdSec, CriminalIP
+
 	// latest scanning data
 	LatestScans []latestScan `json:"LatestScans"`
 }
 
 type latestScan struct {
-	Source     providerSource `json:"Source"`
-	TypeID     ScanType       `json:"TypeID"`
-	AssignedAt time.Time      `json:"AssignedAt"`
+	CommonScanTag
+	TypeID ScanType `json:"TypeID"`
 }
 
 type scanStringValue struct {
-	Value      string         `json:"Value"`
-	Source     providerSource `json:"Source"`
-	AssignedAt time.Time      `json:"AssignedAt"`
+	CommonScanTag
+	Value string `json:"Value"`
 }
 
 type scanBoolValue struct {
-	Value      bool           `json:"Value"`
-	Source     providerSource `json:"Source"`
-	AssignedAt time.Time      `json:"AssignedAt"`
+	CommonScanTag
+	Value bool `json:"Value"`
 }
 
 type scanIntValue struct {
-	Value      int            `json:"Value"`
-	Source     providerSource `json:"Source"`
-	AssignedAt time.Time      `json:"AssignedAt"`
+	CommonScanTag
+	Value int `json:"Value"`
 }
 
 type scanTimeValue struct {
-	Value      time.Time      `json:"Value"`
-	Source     providerSource `json:"Source"`
-	AssignedAt time.Time      `json:"AssignedAt"`
+	CommonScanTag
+
+	Value time.Time `json:"Value"`
 }
 
 type externalBlacklist struct {
-	Name         string    `json:"Name"`
-	Tag          string    `json:"Tag"`
-	DiscoveredAt time.Time `json:"DiscoveredAt"`
+	CommonScanTag
+
+	Name string `json:"Name"`
+	Tag  string `json:"Tag"`
 }
 
 type communityScore struct {
-	PositiveScores uint64         `json:"Positive"`
-	NegativeScores uint64         `json:"Negative"`
-	Source         providerSource `json:"Source"`
-	AssignedAt     time.Time      `json:"AssignedAt"`
+	CommonScanTag
+
+	PositiveScores uint64 `json:"Positive"`
+	NegativeScores uint64 `json:"Negative"`
 }
 
 type portData struct {
-	Banner       string         `json:"Banner"`
-	Data         string         `json:"Data"`
-	Source       providerSource `json:"Source"`
-	DiscoveredAt time.Time      `json:"DiscoveredAt"`
+	CommonScanTag
+
+	Application string `json:"Application"`
+	Protocol    string `json:"Protocol"`
+	Banner      string `json:"Banner"`
+
+	// binary data from external sources
+	Data interface{} `json:"Data"`
+}
+
+type domainRecordValue struct {
+	CommonScanTag
+
+	Value string `json:"Value"`
+}
+
+type CommonScanTag struct {
+	Source    providerSource `json:"Source"`
+	Timestamp time.Time      `json:"Timestamp"`
 }
 
 func NewNetworkNodeProfile() *NetworkNodeProfile {
@@ -155,21 +185,30 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 	for _, s := range scans {
 		var err error
 
+		if !s.IsComplete {
+			continue
+		}
+
 		switch ScanType(s.ScanTypeID) {
 		case SCAN_TYPE_OSS_INFO_IP:
 			source = PROVIDER_SOURCE_IP_INFO
 
 			var body ossEntities.IPInfoIPScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
 			p.addIdentityValues("", "", "", body.Org, source, now)
 			p.addGeographicalValues(body.Region, body.Country, body.City, 0, 0, source, now)
-
 		case SCAN_TYPE_OSS_VT_IP:
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
 
 			var body ossEntities.VTIPScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
+			if err != nil {
+				continue
+			}
 
 			p.addIdentityValues(strconv.Itoa(body.Data.Attributes.ASN), "", body.Data.Attributes.JARM, body.Data.Attributes.ASOwner, source, now)
 			p.addGeographicalValues(body.Data.Attributes.RegionalInternetRegistry, body.Data.Attributes.Country, "", 0, 0, source, now)
@@ -177,15 +216,17 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			for k, v := range body.Data.Attributes.LastAnalysisResults {
 				if slices.Contains([]string{"malicious", "malware"}, v.Result) {
-					p.addExternalBlacklist(k, v.Category, now)
+					p.addExternalBlacklist(k, v.Category, source, now)
 				}
 			}
-
 		case SCAN_TYPE_OSS_VT_DOMAIN:
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
 
 			var body ossEntities.VTDomainScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
 			data := body.Data.Attributes
 
@@ -203,15 +244,17 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			for k, v := range body.Data.Attributes.LastAnalysisResults {
 				if slices.Contains([]string{"malicious", "malware"}, v.Result) {
-					p.addExternalBlacklist(k, v.Category, now)
+					p.addExternalBlacklist(k, v.Category, source, now)
 				}
 			}
-
 		case SCAN_TYPE_OSS_VT_URL:
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
 
 			var body ossEntities.VTURLScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
 			p.addProviderScoring(body.GetRiskScore(), source, now)
 
@@ -225,7 +268,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			for k, v := range body.Data.Attributes.LastAnalysisResults {
 				if slices.Contains([]string{"malicious", "malware"}, v.Result) {
-					p.addExternalBlacklist(k, v.Category, now)
+					p.addExternalBlacklist(k, v.Category, source, now)
 				}
 			}
 
@@ -235,6 +278,9 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			var body ossEntities.IPQSPrivacyScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
 			p.addProviderScoring(body.GetRiskScore(), source, now)
 			p.addIdentityValues(strconv.Itoa(body.ASN), body.ISP, "", body.Organization, source, now)
@@ -247,6 +293,9 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			var body ossEntities.IPQSMaliciousURLScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
 			p.addProviderScoring(body.GetRiskScore(), source, now)
 			p.addGeographicalValues("", body.CountryCode, "", 0, 0, source, now)
@@ -259,6 +308,9 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			var body ossEntities.IPQSEMailScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
 			p.addProviderScoring(body.GetRiskScore(), source, now)
 
@@ -276,12 +328,16 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			var body ossEntities.ShodanHostScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
 			p.addGeographicalValues(body.RegionCode, body.CountryName, body.City, body.Longitude, body.Latitude, source, now)
 			p.addIdentityValues(body.Asn, body.Isp, "", body.Org, source, now)
 
 			for _, port := range body.Ports {
-				p.addPortValue(uint64(port), "", "", source, now)
+				p.addPortValue(uint64(port), "", "", "", "", source, now)
+				// todo: parse shodan port data
 			}
 
 			for _, v := range body.Tags {
@@ -294,6 +350,9 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			var body ossEntities.CrowdSecIPScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
 			p.addGeographicalValues("", body.Location.Country, body.Location.City, body.Location.Longitude, body.Location.Latitude, source, now)
 			p.addIdentityValues(strconv.Itoa(body.AsNum), "", "", "", source, now)
@@ -310,8 +369,37 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			var body ossEntities.CriminalIPIPScanBody
 			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
 
-			// todo: continue
+			// todo: add category data
+
+			p.addAnonymityToolValues(body.Issues.IsAnonymousVpn || body.Issues.IsVpn, body.Issues.IsProxy, body.Issues.IsTor, source, now)
+
+			if body.Domain.Count > 0 && len(body.Domain.Data) > 0 {
+				// todo: sort by date
+
+				data := body.Domain.Data[0]
+
+				p.addDomainData(data.Registrar, 0, data.CreateDate, true, false, source, now)
+			}
+
+			if body.Whois.Count > 0 && len(body.Whois.Data) > 0 {
+				// todo: sort by date
+
+				data := body.Whois.Data[0]
+
+				//p.addGeographicalValues(body.RegionCode, body.CountryName, body.City, body.Longitude, body.Latitude, source, now)
+				//p.addIdentityValues(body.Asn, body.Isp, "", body.Org, source, now)
+
+				p.addGeographicalValues(data.Region, data.OrgCountryCode, data.City, data.Longitude, data.Latitude, source, now)
+				p.addIdentityValues(strconv.Itoa(data.AsNo), "", "", data.OrgName, source, now)
+			}
+
+			for _, port := range body.Port.Data {
+				p.addPortValue(uint64(port.OpenPortNo), port.Banner, port.AppName, port.Protocol, "", source, now)
+			}
 
 			// p.addGeographicalValues("", body., body.Location.City, body.Location.Longitude, body.Location.Latitude, source, now)
 			// p.addIdentityValues(strconv.Itoa(body.AsNum), "", "", "", source, now)
@@ -323,13 +411,33 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			// p.addProviderScoring(body.GetRiskScore(), source, now)
 
 			break
+		case SCAN_TYPE_OSS_CRIM_DOMAIN:
+			source = PROVIDER_SOURCE_CRIMINAL_IP
+
+			var body ossEntities.CriminalIPDomainScanBody
+			err = s.Data.Scan(&body)
+			if err != nil {
+				continue
+			}
+
+			p.addDomainRecordsValue(
+				[]string{}, // todo: add A records
+				body.Data.DnsRecord.DnsRecordTypeCname,
+				[]string{}, // body.Data.DnsRecord.DnsRecordTypeMx, // todo: check wtf with [][]
+				body.Data.DnsRecord.DnsRecordTypeNs,
+				body.Data.DnsRecord.DnsRecordTypePtr,
+				body.Data.DnsRecord.DnsRecordTypeSoa,
+				source,
+				now,
+			)
+
+			for _, d := range body.Data.Classification.DomainType {
+				p.addCategory(d.Type, source, now) // todo: check
+			}
+
+			break
 		default:
 			slog.Warn("unsupported scan body with ID: ", s.ID)
-			break
-		}
-
-		if err != nil {
-			slog.Error("failed to parse scan body with ID: ", s.ID)
 			break
 		}
 
@@ -341,34 +449,42 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 func (p *NetworkNodeProfile) addIdentityValues(asn, isp, jarm, org string, source providerSource, timestamp time.Time) {
 	if len(asn) > 0 {
-		p.ASNs = append(p.ASNs, scanStringValue{
-			Value:      asn,
-			Source:     source,
-			AssignedAt: timestamp,
+		p.ASN = append(p.ASN, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: asn,
 		})
 	}
 
 	if len(isp) > 0 {
-		p.ISPs = append(p.ISPs, scanStringValue{
-			Value:      isp,
-			Source:     source,
-			AssignedAt: timestamp,
+		p.ISP = append(p.ISP, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: isp,
 		})
 	}
 
 	if len(jarm) > 0 {
-		p.JARMs = append(p.JARMs, scanStringValue{
-			Value:      jarm,
-			Source:     source,
-			AssignedAt: timestamp,
+		p.JARM = append(p.JARM, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: jarm,
 		})
 	}
 
 	if len(org) > 0 {
-		p.Organisations = append(p.Organisations, scanStringValue{
-			Value:      org,
-			Source:     source,
-			AssignedAt: timestamp,
+		p.Organisation = append(p.Organisation, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: org,
 		})
 	}
 }
@@ -376,65 +492,81 @@ func (p *NetworkNodeProfile) addIdentityValues(asn, isp, jarm, org string, sourc
 func (p *NetworkNodeProfile) addDomainData(registrar string, rank int, age time.Time, isValid, isParking bool, source providerSource, timestamp time.Time) {
 	if len(registrar) > 0 {
 		p.Registrar = append(p.Registrar, scanStringValue{
-			Value:      registrar,
-			Source:     source,
-			AssignedAt: timestamp,
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: registrar,
 		})
 	}
 
 	if rank > 0 {
 		p.DomainRank = append(p.DomainRank, scanIntValue{
-			Value:      rank,
-			Source:     source,
-			AssignedAt: timestamp,
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: rank,
 		})
 	}
 
 	if !age.IsZero() {
 		p.DomainAge = append(p.DomainAge, scanTimeValue{
-			Value:      age,
-			Source:     source,
-			AssignedAt: timestamp,
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: age,
 		})
 	}
 
 	p.IsDNSValid = append(p.IsDNSValid, scanBoolValue{
-		Value:      isValid,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isValid,
 	})
 
 	if isParking {
 		p.IsDomainParked = append(p.IsDomainParked, scanBoolValue{
-			Value:      isParking,
-			Source:     source,
-			AssignedAt: timestamp,
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: isParking,
 		})
 	}
 }
 
 func (p *NetworkNodeProfile) addGeographicalValues(region, country, city string, longitude, latitude float64, source providerSource, timestamp time.Time) {
 	if len(region) > 0 {
-		p.Regions = append(p.Regions, scanStringValue{
-			Value:      region,
-			Source:     source,
-			AssignedAt: timestamp,
+		p.Region = append(p.Region, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: region,
 		})
 	}
 
 	if len(country) > 0 {
-		p.Countries = append(p.Countries, scanStringValue{
-			Value:      country,
-			Source:     source,
-			AssignedAt: timestamp,
+		p.Country = append(p.Country, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: country,
 		})
 	}
 
 	if len(city) > 0 {
-		p.Countries = append(p.Countries, scanStringValue{
-			Value:      country,
-			Source:     source,
-			AssignedAt: timestamp,
+		p.Country = append(p.Country, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: country,
 		})
 	}
 
@@ -449,107 +581,140 @@ func (p *NetworkNodeProfile) addGeographicalValues(region, country, city string,
 
 func (p *NetworkNodeProfile) addAnonymityToolValues(isVPN, isProxy, isTOR bool, source providerSource, timestamp time.Time) {
 	p.IsVPN = append(p.IsVPN, scanBoolValue{
-		Value:      isVPN,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isVPN,
 	})
 
 	p.IsProxy = append(p.IsProxy, scanBoolValue{
-		Value:      isProxy,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isProxy,
 	})
 
 	p.IsTOR = append(p.IsTOR, scanBoolValue{
-		Value:      isTOR,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isTOR,
 	})
 }
 
 func (p *NetworkNodeProfile) addMailingValues(isValid, isDisposable, canDeliverTo, isCommon, isGeneric, isCatchAll bool, source providerSource, timestamp time.Time) {
 	p.IsMailValid = append(p.IsMailValid, scanBoolValue{
-		Value:      isValid,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isValid,
 	})
 
 	p.IsDisposable = append(p.IsDisposable, scanBoolValue{
-		Value:      isDisposable,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isDisposable,
 	})
 
 	p.CanDeliverTo = append(p.CanDeliverTo, scanBoolValue{
-		Value:      canDeliverTo,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: canDeliverTo,
 	})
 
 	p.IsCommon = append(p.IsCommon, scanBoolValue{
-		Value:      isCommon,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isCommon,
 	})
 
 	p.IsCommon = append(p.IsCommon, scanBoolValue{
-		Value:      isCommon,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isCommon,
 	})
 
 	p.IsGeneric = append(p.IsGeneric, scanBoolValue{
-		Value:      isGeneric,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isGeneric,
 	})
 
 	p.IsCatchAll = append(p.IsCatchAll, scanBoolValue{
-		Value:      isCatchAll,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: isCatchAll,
 	})
 }
 
 func (p *NetworkNodeProfile) addMaliciousActivityValues(spam, phishing, malware, crawler bool, source providerSource, timestamp time.Time) {
 	p.IsSPAM = append(p.IsSPAM, scanBoolValue{
-		Value:      spam,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: spam,
 	})
 
 	p.IsPhishing = append(p.IsPhishing, scanBoolValue{
-		Value:      phishing,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: phishing,
 	})
 
 	p.IsMalwareDistributor = append(p.IsMalwareDistributor, scanBoolValue{
-		Value:      malware,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: malware,
 	})
 
 	p.IsCrawler = append(p.IsCrawler, scanBoolValue{
-		Value:      crawler,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: crawler,
 	})
 }
 
 func (p *NetworkNodeProfile) addLatestScan(source providerSource, typeID ScanType, timestamp time.Time) {
 	p.LatestScans = append(p.LatestScans, latestScan{
-		Source:     source,
-		TypeID:     typeID,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		TypeID: typeID,
 	})
 }
 
-func (p *NetworkNodeProfile) addExternalBlacklist(blacklistName, tag string, timestamp time.Time) {
+func (p *NetworkNodeProfile) addExternalBlacklist(blacklistName, tag string, source providerSource, timestamp time.Time) {
 	p.ExternalBlacklists = append(p.ExternalBlacklists, externalBlacklist{
-		Name:         blacklistName,
-		Tag:          tag,
-		DiscoveredAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Name: blacklistName,
+		Tag:  tag,
 	})
 }
 
@@ -565,52 +730,128 @@ func (p *NetworkNodeProfile) addAnalyticsScoring(dga, semantics, dns, overall fl
 }
 
 func (p *NetworkNodeProfile) addProviderScoring(score *uint8, source providerSource, timestamp time.Time) {
-	p.ProviderScores = append(p.ProviderScores, scanIntValue{
-		Value:      int(*score),
-		Source:     source,
-		AssignedAt: timestamp,
+	p.ProviderScore = append(p.ProviderScore, scanIntValue{
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: int(*score),
 	})
 }
 
 func (p *NetworkNodeProfile) addCategory(category string, source providerSource, timestamp time.Time) {
-	p.Categories = append(p.Categories, scanStringValue{
-		Value:      category,
-		Source:     source,
-		AssignedAt: timestamp,
+	p.Category = append(p.Category, scanStringValue{
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: category,
 	})
 }
 
 func (p *NetworkNodeProfile) addAlert(alert string, source providerSource, timestamp time.Time) {
 	p.Alerts = append(p.Alerts, scanStringValue{
-		Value:      alert,
-		Source:     source,
-		AssignedAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: alert,
 	})
 }
 
 func (p *NetworkNodeProfile) addTag(tag string, source providerSource, timestamp time.Time) {
-	p.Tags = append(p.Tags, scanStringValue{
-		Value:      tag,
-		Source:     source,
-		AssignedAt: timestamp,
+	p.Tag = append(p.Tag, scanStringValue{
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Value: tag,
 	})
 }
 
 func (p *NetworkNodeProfile) addCommunityScore(positive, negative uint64, source providerSource, timestamp time.Time) {
 	p.CommunityScores = append(p.CommunityScores, communityScore{
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
 		PositiveScores: positive,
 		NegativeScores: negative,
-		Source:         source,
-		AssignedAt:     timestamp,
 	})
 }
 
-func (p *NetworkNodeProfile) addPortValue(port uint64, banner, data string, source providerSource, timestamp time.Time) {
+func (p *NetworkNodeProfile) addPortValue(port uint64, banner, application, protocol, data string, source providerSource, timestamp time.Time) {
 	p.OpenPorts[port] = portData{
-		Banner:       banner,
-		Data:         data,
-		Source:       source,
-		DiscoveredAt: timestamp,
+		CommonScanTag: CommonScanTag{
+			Source:    source,
+			Timestamp: timestamp,
+		},
+		Application: application,
+		Protocol:    protocol,
+		Banner:      banner,
+		Data:        data,
+	}
+}
+
+func (p *NetworkNodeProfile) addDomainRecordsValue(a, cname, mx, ns, ptr, soa []string, source providerSource, timestamp time.Time) {
+	for _, r := range a {
+		p.ARecords = append(p.ARecords, domainRecordValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: r,
+		})
+	}
+
+	for _, r := range cname {
+		p.CNameRecords = append(p.CNameRecords, domainRecordValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: r,
+		})
+	}
+
+	for _, r := range mx {
+		p.MXRecords = append(p.MXRecords, domainRecordValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: r,
+		})
+	}
+
+	for _, r := range ns {
+		p.NSRecords = append(p.NSRecords, domainRecordValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: r,
+		})
+	}
+
+	for _, r := range ptr {
+		p.PTRRecords = append(p.PTRRecords, domainRecordValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: r,
+		})
+	}
+
+	for _, r := range soa {
+		p.SOARecords = append(p.SOARecords, domainRecordValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: r,
+		})
 	}
 }
 

@@ -1,5 +1,7 @@
 package ossEntities
 
+import "time"
+
 type CriminalIPIPScanBody struct {
 	Ip string `json:"ip"`
 
@@ -34,12 +36,12 @@ type CriminalIPIPScanBody struct {
 	Domain struct {
 		Count int `json:"count"`
 		Data  []struct {
-			Domain        string `json:"domain"`
-			IpType        string `json:"ip_type"`
-			Registrar     string `json:"registrar"`
-			CreateDate    string `json:"create_date"`
-			ConfirmedTime string `json:"confirmed_time"`
-			Email         string `json:"email"`
+			Domain        string    `json:"domain"`
+			IpType        string    `json:"ip_type"`
+			Registrar     string    `json:"registrar"`
+			CreateDate    time.Time `json:"create_date"`
+			ConfirmedTime string    `json:"confirmed_time"`
+			Email         string    `json:"email"`
 		} `json:"data"`
 	} `json:"domain"`
 
