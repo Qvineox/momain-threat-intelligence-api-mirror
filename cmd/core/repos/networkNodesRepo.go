@@ -5,6 +5,7 @@ import (
 	"domain_threat_intelligence_api/cmd/core/entities/networkEntities"
 	"github.com/jackc/pgtype"
 	"gorm.io/gorm"
+	"log/slog"
 	"time"
 )
 
@@ -102,10 +103,25 @@ func (r NetworkNodesRepoImpl) CreateNetworkNodeWithIdentity(scan networkEntities
 func (r NetworkNodesRepoImpl) SelectNetworkNodeByUUID(uuid pgtype.UUID) (networkEntities.NetworkNode, error) {
 	node := networkEntities.NetworkNode{}
 
-	err := r.Preload("Type").Preload("Scans").Find(&node, uuid).Error
+	err := r.Preload("Type").Find(&node, uuid).Error
 	if err != nil {
 		return networkEntities.NetworkNode{}, err
 	}
 
+	node.Scans, err = r.SelectLatestScansByNodeUUID(node.UUID)
+	if err != nil {
+		slog.Warn("failed to query latest node scans: " + err.Error())
+	}
+
 	return node, nil
+}
+
+func (r NetworkNodesRepoImpl) SelectLatestScansByNodeUUID(uuid pgtype.UUID) ([]networkEntities.NetworkNodeScan, error) {
+	scans := make([]networkEntities.NetworkNodeScan, 0)
+
+	err := r.Raw("SELECT DISTINCT ON (scan_type_id) * "+
+		"FROM network_node_scans WHERE node_uuid = ? AND is_complete = true "+
+		"ORDER BY scan_type_id, created_at DESC;", uuid).Scan(&scans).Error
+
+	return scans, err
 }

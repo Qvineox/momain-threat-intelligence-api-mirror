@@ -13,7 +13,7 @@ import (
 // NetworkNodeProfile represents single compiled report about network node
 type NetworkNodeProfile struct {
 	// owner identity data
-	ASN          []scanStringValue `json:"ASN"`
+	ASN          []scanIntValue    `json:"ASN"`
 	ISP          []scanStringValue `json:"ISP"`
 	JARM         []scanStringValue `json:"JARM"`
 	Organisation []scanStringValue `json:"Organisation"`
@@ -169,7 +169,10 @@ type CommonScanTag struct {
 }
 
 func NewNetworkNodeProfile() *NetworkNodeProfile {
-	return &NetworkNodeProfile{}
+	profile := &NetworkNodeProfile{}
+	profile.OpenPorts = make(map[uint64]portData)
+
+	return profile
 }
 
 func (p *NetworkNodeProfile) WithBlacklisted(isBlacklisted bool) *NetworkNodeProfile {
@@ -194,12 +197,12 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_IP_INFO
 
 			var body ossEntities.IPInfoIPScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
 
-			p.addIdentityValues("", "", "", body.Org, source, now)
+			p.addIdentityValues(0, "", "", body.Org, source, now)
 			p.addGeographicalValues(body.Region, body.Country, body.City, 0, 0, source, now)
 		case SCAN_TYPE_OSS_VT_IP:
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
@@ -210,7 +213,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 				continue
 			}
 
-			p.addIdentityValues(strconv.Itoa(body.Data.Attributes.ASN), "", body.Data.Attributes.JARM, body.Data.Attributes.ASOwner, source, now)
+			p.addIdentityValues(body.Data.Attributes.ASN, "", body.Data.Attributes.JARM, body.Data.Attributes.ASOwner, source, now)
 			p.addGeographicalValues(body.Data.Attributes.RegionalInternetRegistry, body.Data.Attributes.Country, "", 0, 0, source, now)
 			p.addProviderScoring(body.GetRiskScore(), source, now)
 
@@ -223,14 +226,14 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
 
 			var body ossEntities.VTDomainScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
 
 			data := body.Data.Attributes
 
-			p.addIdentityValues("", "", data.JARM, "", source, now)
+			p.addIdentityValues(0, "", data.JARM, "", source, now)
 			p.addProviderScoring(body.GetRiskScore(), source, now)
 			p.addDomainData(data.Registrar, 0, time.Time{}, false, false, source, now)
 
@@ -251,7 +254,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
 
 			var body ossEntities.VTURLScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
@@ -277,13 +280,13 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_IP_QUALITY_SCORE
 
 			var body ossEntities.IPQSPrivacyScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
 
 			p.addProviderScoring(body.GetRiskScore(), source, now)
-			p.addIdentityValues(strconv.Itoa(body.ASN), body.ISP, "", body.Organization, source, now)
+			p.addIdentityValues(body.ASN, body.ISP, "", body.Organization, source, now)
 			p.addGeographicalValues(body.Region, body.CountryCode, body.City, body.Longitude, body.Latitude, source, now)
 			p.addAnonymityToolValues(body.Vpn, body.Proxy, body.Tor, source, now)
 
@@ -292,7 +295,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_IP_QUALITY_SCORE
 
 			var body ossEntities.IPQSMaliciousURLScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
@@ -307,7 +310,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_IP_QUALITY_SCORE
 
 			var body ossEntities.IPQSEMailScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
@@ -327,13 +330,15 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_SHODAN
 
 			var body ossEntities.ShodanHostScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
 
 			p.addGeographicalValues(body.RegionCode, body.CountryName, body.City, body.Longitude, body.Latitude, source, now)
-			p.addIdentityValues(body.Asn, body.Isp, "", body.Org, source, now)
+
+			asn, _ := strconv.Atoi(body.Asn)
+			p.addIdentityValues(asn, body.Isp, "", body.Org, source, now)
 
 			for _, port := range body.Ports {
 				p.addPortValue(uint64(port), "", "", "", "", source, now)
@@ -349,13 +354,13 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_CROWDSEC
 
 			var body ossEntities.CrowdSecIPScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
 
 			p.addGeographicalValues("", body.Location.Country, body.Location.City, body.Location.Longitude, body.Location.Latitude, source, now)
-			p.addIdentityValues(strconv.Itoa(body.AsNum), "", "", "", source, now)
+			p.addIdentityValues(body.AsNum, "", "", "", source, now)
 
 			for _, c := range body.Classifications.Classifications {
 				p.addCategory(fmt.Sprintf("%s (%s)", c.Label, c.Description), source, now)
@@ -368,7 +373,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_CRIMINAL_IP
 
 			var body ossEntities.CriminalIPIPScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
@@ -381,8 +386,9 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 				// todo: sort by date
 
 				data := body.Domain.Data[0]
+				domainCreatedAt, _ := time.Parse("2006-01-02 15:04:05", data.CreateDate)
 
-				p.addDomainData(data.Registrar, 0, data.CreateDate, true, false, source, now)
+				p.addDomainData(data.Registrar, 0, domainCreatedAt, true, false, source, now)
 			}
 
 			if body.Whois.Count > 0 && len(body.Whois.Data) > 0 {
@@ -394,7 +400,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 				//p.addIdentityValues(body.Asn, body.Isp, "", body.Org, source, now)
 
 				p.addGeographicalValues(data.Region, data.OrgCountryCode, data.City, data.Longitude, data.Latitude, source, now)
-				p.addIdentityValues(strconv.Itoa(data.AsNo), "", "", data.OrgName, source, now)
+				p.addIdentityValues(data.AsNo, "", "", data.OrgName, source, now)
 			}
 
 			for _, port := range body.Port.Data {
@@ -415,7 +421,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			source = PROVIDER_SOURCE_CRIMINAL_IP
 
 			var body ossEntities.CriminalIPDomainScanBody
-			err = s.Data.Scan(&body)
+			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
@@ -441,15 +447,15 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			break
 		}
 
-		p.addLatestScan(source, ScanType(s.ScanTypeID), now)
+		p.addLatestScan(source, ScanType(s.ScanTypeID), s.CreatedAt)
 	}
 
 	return p
 }
 
-func (p *NetworkNodeProfile) addIdentityValues(asn, isp, jarm, org string, source providerSource, timestamp time.Time) {
-	if len(asn) > 0 {
-		p.ASN = append(p.ASN, scanStringValue{
+func (p *NetworkNodeProfile) addIdentityValues(asn int, isp, jarm, org string, source providerSource, timestamp time.Time) {
+	if asn > 0 {
+		p.ASN = append(p.ASN, scanIntValue{
 			CommonScanTag: CommonScanTag{
 				Source:    source,
 				Timestamp: timestamp,
