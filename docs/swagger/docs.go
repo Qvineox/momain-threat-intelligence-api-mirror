@@ -1632,7 +1632,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/jobEntities.Job"
+                            "$ref": "#/definitions/routing.jobPayload"
                         }
                     },
                     "400": {
@@ -3509,6 +3509,17 @@ const docTemplate = `{
                 "JOB_STATUS_CANCELLED"
             ]
         },
+        "jobEntities.JobSummary": {
+            "type": "object",
+            "properties": {
+                "Profiles": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/networkEntities.NetworkNodeProfile"
+                    }
+                }
+            }
+        },
         "jobEntities.JobType": {
             "type": "integer",
             "enum": [
@@ -3716,7 +3727,7 @@ const docTemplate = `{
                     "description": "Network node unique identity, can be any address or URI. Must be unique.",
                     "type": "string"
                 },
-                "NodeType": {
+                "NodeTypeID": {
                     "$ref": "#/definitions/networkEntities.NetworkNodeType"
                 },
                 "NodeTypeId": {
@@ -3764,7 +3775,7 @@ const docTemplate = `{
                     "description": "owner identity data",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/networkEntities.scanStringValue"
+                        "$ref": "#/definitions/networkEntities.scanIntValue"
                     }
                 },
                 "Alerts": {
@@ -3842,6 +3853,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/networkEntities.scanStringValue"
                     }
+                },
+                "Identity": {
+                    "type": "string"
                 },
                 "IsBlacklisted": {
                     "description": "blacklists data",
@@ -3996,6 +4010,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/networkEntities.domainRecordValue"
                     }
+                },
+                "NodeTypeID": {
+                    "type": "integer"
                 },
                 "OpenPorts": {
                     "description": "host data",
@@ -4467,6 +4484,17 @@ const docTemplate = `{
                 },
                 "OldPassword": {
                     "type": "string"
+                }
+            }
+        },
+        "routing.jobPayload": {
+            "type": "object",
+            "properties": {
+                "job": {
+                    "$ref": "#/definitions/jobEntities.Job"
+                },
+                "summary": {
+                    "$ref": "#/definitions/jobEntities.JobSummary"
                 }
             }
         },

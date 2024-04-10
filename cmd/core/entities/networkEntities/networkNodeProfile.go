@@ -12,6 +12,9 @@ import (
 
 // NetworkNodeProfile represents single compiled report about network node
 type NetworkNodeProfile struct {
+	Identity   string `json:"Identity"`
+	NodeTypeID uint64 `json:"NodeTypeID"`
+
 	// owner identity data
 	ASN          []scanIntValue    `json:"ASN"`
 	ISP          []scanStringValue `json:"ISP"`
@@ -168,9 +171,12 @@ type CommonScanTag struct {
 	Timestamp time.Time      `json:"Timestamp"`
 }
 
-func NewNetworkNodeProfile() *NetworkNodeProfile {
+func NewNetworkNodeProfile(identity string, nodeTypeID uint64) *NetworkNodeProfile {
 	profile := &NetworkNodeProfile{}
 	profile.OpenPorts = make(map[uint64]portData)
+
+	profile.Identity = identity
+	profile.NodeTypeID = nodeTypeID
 
 	return profile
 }

@@ -15,7 +15,7 @@ type NetworkNode struct {
 	// Network node discovery timestamp, when was this node first found
 	DiscoveredAt *time.Time `json:"DiscoveredAt" gorm:"column:discovered_at"`
 
-	Type   *NetworkNodeType `json:"NodeType,omitempty" gorm:"foreignKey:TypeID;constraint:OnUpdate:CASCADE;OnDelete:SET NULL"`
+	Type   *NetworkNodeType `json:"NodeTypeID,omitempty" gorm:"foreignKey:TypeID;constraint:OnUpdate:CASCADE;OnDelete:SET NULL"`
 	TypeID uint64           `json:"NodeTypeId"`
 
 	Scans []NetworkNodeScan `json:"Scans" gorm:"foreignKey:NodeUUID"`

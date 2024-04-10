@@ -26,7 +26,7 @@ func (n NodesServiceImpl) RetrieveNetworkNodeByUUID(uuid pgtype.UUID) (networkEn
 		return networkEntities.NetworkNode{}, nil
 	}
 
-	node.Profile = networkEntities.NewNetworkNodeProfile()
+	node.Profile = networkEntities.NewNetworkNodeProfile(node.Identity, node.TypeID)
 
 	// checking is node identity in blacklists
 	blacklists, err := n.blacklists.RetrieveHostsByFilter(blacklistEntities.BlacklistSearchFilter{

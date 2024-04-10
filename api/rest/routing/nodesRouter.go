@@ -128,13 +128,13 @@ func (r *NodesRouter) GetNodeByUUID(c *gin.Context) {
 }
 
 func (r *NodesRouter) PatchNode(c *gin.Context) {
-	c.Status(http.StatusNotImplemented)
+	c.Status(http.StatusNotImplemented) // todo
 }
 
 func (r *NodesRouter) PutNode(c *gin.Context) {
-	c.Status(http.StatusNotImplemented)
+	c.Status(http.StatusNotImplemented) // todo
 }
 
 func (r *NodesRouter) DeleteNode(c *gin.Context) {
-	c.Status(http.StatusNotImplemented)
+	c.Status(http.StatusNotImplemented) // todo
 }

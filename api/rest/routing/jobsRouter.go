@@ -94,7 +94,7 @@ func (r *JobsRouter) GetJobsByFilter(c *gin.Context) {
 // @Router             /jobs/job/{job_uuid} [get]
 // @ProduceAccessToken json
 // @Param              job_uuid    path      string   true "Job UUID"
-// @Success            200                   {object} jobEntities.Job
+// @Success            200                   {object} jobPayload
 // @Failure            404,401,400 {object} apiErrors.APIError
 func (r *JobsRouter) GetJobByUUID(c *gin.Context) {
 	uuidParam := c.Param("job_uuid")
@@ -119,7 +119,15 @@ func (r *JobsRouter) GetJobByUUID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, job)
+	c.JSON(http.StatusOK, jobPayload{
+		Summary: job.GetSummary(),
+		Job:     job,
+	})
+}
+
+type jobPayload struct {
+	Summary jobEntities.JobSummary `json:"Summary"`
+	Job     jobEntities.Job        `json:"Job"`
 }
 
 // DeleteJobByUUID accepts UUID and deletes Job
