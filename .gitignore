@@ -10,3 +10,4 @@ docs/examples
 .env
 /configs/config.test.static.json
 /tls/
+/scripts/http/env/http-client.env.json
