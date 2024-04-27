@@ -4,6 +4,7 @@ import (
 	"github.com/jackc/pgtype"
 	"gorm.io/gorm"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -31,8 +32,14 @@ type BlacklistedIP struct {
 
 func ExtractIPFromPattern(input string) string {
 	numBlock := "(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])"
-	regexPattern := numBlock + "\\." + numBlock + "\\." + numBlock + "\\." + numBlock
+	regexPattern := "\\/\\/" + numBlock + "\\." + numBlock + "\\." + numBlock + "\\." + numBlock
 
 	regEx := regexp.MustCompile(regexPattern)
-	return regEx.FindString(input)
+	address := regEx.FindString(input)
+
+	if len(address) > 0 {
+		address = strings.Replace(address, "//", "", 1)
+	}
+
+	return address
 }
