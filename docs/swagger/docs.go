@@ -3531,7 +3531,7 @@ const docTemplate = `{
                 5
             ],
             "x-enum-varnames": [
-                "JOB_TYPE_OSS",
+                "JOB_TYPE_OSINT",
                 "JOB_TYPE_NMAP",
                 "JOB_TYPE_WHOIS",
                 "JOB_TYPE_DNS",
@@ -3645,7 +3645,8 @@ const docTemplate = `{
                 3,
                 4,
                 5,
-                6
+                6,
+                7
             ],
             "x-enum-varnames": [
                 "OSS_PROVIDER_VIRUS_TOTAL",
@@ -3654,7 +3655,8 @@ const docTemplate = `{
                 "OSS_PROVIDER_SHODAN",
                 "OSS_PROVIDER_IP_WHO_IS",
                 "OSS_PROVIDER_CRIMINAL_IP",
-                "OSS_PROVIDER_IP_INFO"
+                "OSS_PROVIDER_IP_INFO",
+                "OSS_PROVIDER_IP_API"
             ]
         },
         "jobEntities.Target": {
@@ -4072,7 +4074,20 @@ const docTemplate = `{
                 "SemanticScore": {
                     "type": "number"
                 },
+                "TXTRecords": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/networkEntities.domainRecordValue"
+                    }
+                },
                 "Tag": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/networkEntities.scanStringValue"
+                    }
+                },
+                "WHOIS": {
+                    "description": "whois data",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/networkEntities.scanStringValue"
@@ -4490,10 +4505,10 @@ const docTemplate = `{
         "routing.jobPayload": {
             "type": "object",
             "properties": {
-                "job": {
+                "Job": {
                     "$ref": "#/definitions/jobEntities.Job"
                 },
-                "summary": {
+                "Summary": {
                     "$ref": "#/definitions/jobEntities.JobSummary"
                 }
             }

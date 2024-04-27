@@ -1,0 +1,5 @@
+### Get all registered agents
+GET {{base_url}}/scanning/agents/agents
+Accept: application/json
+Content-Type: application/json
+X-Api-Key: {{access_token}}

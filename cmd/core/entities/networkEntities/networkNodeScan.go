@@ -2,7 +2,9 @@ package networkEntities
 
 import (
 	"bytes"
-	"domain_threat_intelligence_api/cmd/core/entities/ossEntities"
+	"domain_threat_intelligence_api/cmd/core/entities/dnsEntities"
+	"domain_threat_intelligence_api/cmd/core/entities/osintEntities"
+	"domain_threat_intelligence_api/cmd/core/entities/whoisEntities"
 	"encoding/json"
 	"github.com/jackc/pgtype"
 	"gorm.io/datatypes"
@@ -48,7 +50,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 
 	switch ScanType(scan.ScanTypeID) {
 	case SCAN_TYPE_OSS_VT_IP:
-		content := ossEntities.VTIPScanBody{}
+		content := osintEntities.VTIPScanBody{}
 		err = json.Unmarshal(data, &content)
 
 		scan.RiskScore = content.GetRiskScore()
@@ -56,7 +58,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_VT_DOMAIN:
-		content := ossEntities.VTDomainScanBody{}
+		content := osintEntities.VTDomainScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
@@ -67,7 +69,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_VT_URL:
-		content := ossEntities.VTURLScanBody{}
+		content := osintEntities.VTURLScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
@@ -78,7 +80,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_IPQS_IP:
-		content := ossEntities.IPQSPrivacyScanBody{}
+		content := osintEntities.IPQSPrivacyScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
@@ -88,21 +90,21 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_IPQS_DOMAIN:
-		content := ossEntities.IPQSMaliciousURLScanBody{}
+		content := osintEntities.IPQSMaliciousURLScanBody{}
 		err = json.Unmarshal(data, &content)
 
 		scan.RiskScore = content.GetRiskScore()
 		break
 
 	case SCAN_TYPE_OSS_IPQS_URL:
-		content := ossEntities.IPQSMaliciousURLScanBody{}
+		content := osintEntities.IPQSMaliciousURLScanBody{}
 		err = json.Unmarshal(data, &content)
 
 		scan.RiskScore = content.GetRiskScore()
 		break
 
 	case SCAN_TYPE_OSS_IPQS_EMAIL:
-		content := ossEntities.IPQSEMailScanBody{}
+		content := osintEntities.IPQSEMailScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
@@ -112,7 +114,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_SHODAN_IP:
-		content := ossEntities.ShodanHostScanBody{}
+		content := osintEntities.ShodanHostScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
@@ -122,7 +124,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_CS_IP:
-		content := ossEntities.CrowdSecIPScanBody{}
+		content := osintEntities.CrowdSecIPScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
@@ -132,7 +134,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_CRIM_IP:
-		content := ossEntities.CriminalIPIPScanBody{}
+		content := osintEntities.CriminalIPIPScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
@@ -142,7 +144,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_CRIM_DOMAIN:
-		content := ossEntities.CriminalIPDomainScanBody{}
+		content := osintEntities.CriminalIPDomainScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
@@ -152,13 +154,40 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		break
 
 	case SCAN_TYPE_OSS_INFO_IP:
-		content := ossEntities.IPInfoIPScanBody{}
+		content := osintEntities.IPInfoIPScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {
 			return err
 		}
 
 		scan.RiskScore = content.GetRiskScore()
+		break
+
+	case SCAN_TYPE_DNS_LOOKUP:
+		content := dnsEntities.DNSLookupScanBody{}
+		err = json.Unmarshal(data, &content)
+		if err != nil {
+			return err
+		}
+
+		break
+
+	case SCAN_TYPE_DNS_REVERSE_LOOKUP:
+		content := dnsEntities.ReverseDNSLookupScanBody{}
+		err = json.Unmarshal(data, &content)
+		if err != nil {
+			return err
+		}
+
+		break
+
+	case SCAN_TYPE_DNS_WHOIS_IP, SCAN_TYPE_DNS_WHOIS_DOMAIN:
+		content := whoisEntities.WhoISScanBody{}
+		err = json.Unmarshal(data, &content)
+		if err != nil {
+			return err
+		}
+
 		break
 
 	// TODO: add compacting, remove redundant or null (N/A, or other) fields

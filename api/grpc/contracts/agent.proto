@@ -23,10 +23,11 @@ message SecurityToken {
 service Jobs {
   // StartJob accepts Job with all required params, streams back all queried and found results
   rpc StartOSS (Job) returns (stream TargetAuditReport);
+  rpc StartDNS (Job) returns (stream TargetAuditReport);
+  rpc StartWHOIS (Job) returns (stream TargetAuditReport);
 
   // rpc StartNMAP (Job) returns (stream TargetAuditReport);
   // rpc StartWhoIs (Job) returns (stream TargetAuditReport);
-  // rpc StartDNS (Job) returns (stream TargetAuditReport);
   // rpc StartDiscovery (Job) returns (stream TargetAuditReport);
   // rpc StartSpider (Job) returns (stream TargetAuditReport);
 }
@@ -132,6 +133,7 @@ enum OSSProvider {
   OSS_PROVIDER_IP_WHO_IS = 4;
   OSS_PROVIDER_CRIMINAL_IP = 5;
   OSS_PROVIDER_IP_INFO = 6;
+  OSS_PROVIDER_IP_API = 7;
 }
 
 // scanning using NMAP binding
@@ -146,6 +148,9 @@ message WhoIsDirectives {
 
 // query DNS servers
 message DNSDirectives {
+  bool ReverseLookup = 1;
+  optional uint64 RepeatLookups = 2;
+
   Timings timings = 9;
 }
 
@@ -192,7 +197,10 @@ enum HostType {
 }
 
 enum ScanType {
+  // reserved
   SCAN_TYPE_UNKNOWN = 0;
+
+  // osint
   SCAN_TYPE_OSS_VT_IP = 101;
   SCAN_TYPE_OSS_VT_DOMAIN = 102;
   SCAN_TYPE_OSS_VT_URL = 103;
@@ -206,6 +214,15 @@ enum ScanType {
   SCAN_TYPE_OSS_CRM_IP = 601;
   SCAN_TYPE_OSS_CRM_DOMAIN = 602;
   SCAN_TYPE_OSS_INFO_IP = 701;
+  SCAN_TYPE_OSS_IP_API = 801;
+
+  // dns
+  SCAN_TYPE_DNS_LOOKUP = 1101;
+  SCAN_TYPE_DNS_REVERSE_LOOKUP = 1102;
+
+  // whois
+  SCAN_TYPE_WHOIS_IP = 2101;
+  SCAN_TYPE_WHOIS_DOMAIN = 2102;
 }
 
 // TargetAuditReport is used to represent Task return values. Task type and other data should be added to header.

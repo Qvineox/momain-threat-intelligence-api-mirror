@@ -16,19 +16,25 @@ type NetworkNodeScanType struct {
 type ScanType uint64
 
 const (
-	SCAN_TYPE_OSS_VT_IP       ScanType = 101
-	SCAN_TYPE_OSS_VT_DOMAIN            = 102
-	SCAN_TYPE_OSS_VT_URL               = 103
-	SCAN_TYPE_OSS_IPQS_IP              = 201
-	SCAN_TYPE_OSS_IPQS_DOMAIN          = 202
-	SCAN_TYPE_OSS_IPQS_URL             = 203
-	SCAN_TYPE_OSS_IPQS_EMAIL           = 204
-	SCAN_TYPE_OSS_SHODAN_IP            = 301
-	SCAN_TYPE_OSS_CS_IP                = 401
-	SCAN_TYPE_OSS_IPWH_IP              = 501
-	SCAN_TYPE_OSS_CRIM_IP              = 601
-	SCAN_TYPE_OSS_CRIM_DOMAIN          = 602
-	SCAN_TYPE_OSS_INFO_IP              = 701
+	SCAN_TYPE_OSS_VT_IP          ScanType = 101
+	SCAN_TYPE_OSS_VT_DOMAIN               = 102
+	SCAN_TYPE_OSS_VT_URL                  = 103
+	SCAN_TYPE_OSS_IPQS_IP                 = 201
+	SCAN_TYPE_OSS_IPQS_DOMAIN             = 202
+	SCAN_TYPE_OSS_IPQS_URL                = 203
+	SCAN_TYPE_OSS_IPQS_EMAIL              = 204
+	SCAN_TYPE_OSS_SHODAN_IP               = 301
+	SCAN_TYPE_OSS_CS_IP                   = 401
+	SCAN_TYPE_OSS_IPWH_IP                 = 501
+	SCAN_TYPE_OSS_CRIM_IP                 = 601
+	SCAN_TYPE_OSS_CRIM_DOMAIN             = 602
+	SCAN_TYPE_OSS_INFO_IP                 = 701
+	SCAN_TYPE_OSS_IP_API_IP               = 801
+	SCAN_TYPE_OSS_IP_API_DOMAIN           = 802
+	SCAN_TYPE_DNS_LOOKUP                  = 1101
+	SCAN_TYPE_DNS_REVERSE_LOOKUP          = 1102
+	SCAN_TYPE_DNS_WHOIS_IP                = 1201
+	SCAN_TYPE_DNS_WHOIS_DOMAIN            = 1202
 )
 
 var DefaultNetworkNodeScanTypes = []NetworkNodeScanType{
@@ -96,5 +102,35 @@ var DefaultNetworkNodeScanTypes = []NetworkNodeScanType{
 		ID:          uint64(SCAN_TYPE_OSS_INFO_IP),
 		Name:        "IPInfo IP",
 		Description: "Данные об IP получены из запроса к API IPInfo",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_OSS_IP_API_IP),
+		Name:        "IP-API IP",
+		Description: "Данные об IP получены из запроса к API сервиса IP-API",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_OSS_IP_API_DOMAIN),
+		Name:        "IP-API Domain",
+		Description: "Данные о домене получены из запроса к API сервиса IP-API",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_DNS_LOOKUP),
+		Name:        "DNS Lookup",
+		Description: "Опрос системы доменных имен",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_DNS_REVERSE_LOOKUP),
+		Name:        "DNS Reverse Lookup",
+		Description: "Обратный опрос системы доменных имен по IP",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_DNS_WHOIS_IP),
+		Name:        "WHOIS IP Lookup",
+		Description: "Получение WHOIS информации об IP",
+	},
+	{
+		ID:          uint64(SCAN_TYPE_DNS_WHOIS_DOMAIN),
+		Name:        "WHOIS Domain Lookup",
+		Description: "Получение WHOIS информации о домене",
 	},
 }

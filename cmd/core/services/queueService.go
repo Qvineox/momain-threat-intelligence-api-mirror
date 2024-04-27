@@ -38,7 +38,7 @@ func (q *QueueServiceImpl) QueueNewJob(params jobEntities.JobCreateParams) (*pgt
 		WithPayload(params.Targets, params.Exceptions)
 
 	switch job.Meta.Type {
-	case jobEntities.JOB_TYPE_OSS:
+	case jobEntities.JOB_TYPE_OSINT:
 		if len(params.OpenSourceProviders) == 0 {
 			return nil, errors.New("providers not defined")
 		}

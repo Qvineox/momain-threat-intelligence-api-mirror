@@ -1,7 +1,9 @@
 package networkEntities
 
 import (
-	"domain_threat_intelligence_api/cmd/core/entities/ossEntities"
+	"domain_threat_intelligence_api/cmd/core/entities/dnsEntities"
+	"domain_threat_intelligence_api/cmd/core/entities/osintEntities"
+	"domain_threat_intelligence_api/cmd/core/entities/whoisEntities"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -47,6 +49,7 @@ type NetworkNodeProfile struct {
 	NSRecords    []domainRecordValue `json:"NSRecords"`
 	PTRRecords   []domainRecordValue `json:"PTRRecords"`
 	SOARecords   []domainRecordValue `json:"SOARecords"`
+	TXTRecords   []domainRecordValue `json:"TXTRecords"`
 
 	// blacklists data
 	IsBlacklisted      bool                `json:"IsBlacklisted"`      // IsBlacklisted for internal blacklisting
@@ -98,6 +101,9 @@ type NetworkNodeProfile struct {
 
 	// host data
 	OpenPorts map[uint64]portData `json:"OpenPorts"`
+
+	// whois data
+	WHOIS []scanStringValue `json:"WHOIS"`
 
 	// vulnerabilities
 	// todo: add vulnerability data from CrowdSec, CriminalIP
@@ -199,21 +205,10 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		}
 
 		switch ScanType(s.ScanTypeID) {
-		case SCAN_TYPE_OSS_INFO_IP:
-			source = PROVIDER_SOURCE_IP_INFO
-
-			var body ossEntities.IPInfoIPScanBody
-			err = json.Unmarshal(s.Data, &body)
-			if err != nil {
-				continue
-			}
-
-			p.addIdentityValues(0, "", "", body.Org, source, now)
-			p.addGeographicalValues(body.Region, body.Country, body.City, 0, 0, source, now)
 		case SCAN_TYPE_OSS_VT_IP:
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
 
-			var body ossEntities.VTIPScanBody
+			var body osintEntities.VTIPScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -231,7 +226,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_VT_DOMAIN:
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
 
-			var body ossEntities.VTDomainScanBody
+			var body osintEntities.VTDomainScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -259,7 +254,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_VT_URL:
 			source = PROVIDER_SOURCE_VIRUS_TOTAL
 
-			var body ossEntities.VTURLScanBody
+			var body osintEntities.VTURLScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -285,7 +280,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_IPQS_IP:
 			source = PROVIDER_SOURCE_IP_QUALITY_SCORE
 
-			var body ossEntities.IPQSPrivacyScanBody
+			var body osintEntities.IPQSPrivacyScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -300,7 +295,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_IPQS_URL, SCAN_TYPE_OSS_IPQS_DOMAIN:
 			source = PROVIDER_SOURCE_IP_QUALITY_SCORE
 
-			var body ossEntities.IPQSMaliciousURLScanBody
+			var body osintEntities.IPQSMaliciousURLScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -315,7 +310,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_IPQS_EMAIL:
 			source = PROVIDER_SOURCE_IP_QUALITY_SCORE
 
-			var body ossEntities.IPQSEMailScanBody
+			var body osintEntities.IPQSEMailScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -335,7 +330,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_SHODAN_IP:
 			source = PROVIDER_SOURCE_SHODAN
 
-			var body ossEntities.ShodanHostScanBody
+			var body osintEntities.ShodanHostScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -359,7 +354,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_CS_IP:
 			source = PROVIDER_SOURCE_CROWDSEC
 
-			var body ossEntities.CrowdSecIPScanBody
+			var body osintEntities.CrowdSecIPScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -378,7 +373,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_CRIM_IP:
 			source = PROVIDER_SOURCE_CRIMINAL_IP
 
-			var body ossEntities.CriminalIPIPScanBody
+			var body osintEntities.CriminalIPIPScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
@@ -426,19 +421,30 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 		case SCAN_TYPE_OSS_CRIM_DOMAIN:
 			source = PROVIDER_SOURCE_CRIMINAL_IP
 
-			var body ossEntities.CriminalIPDomainScanBody
+			var body osintEntities.CriminalIPDomainScanBody
 			err = json.Unmarshal(s.Data, &body)
 			if err != nil {
 				continue
 			}
 
+			var ips []string
+
+			for _, ip := range body.Data.DnsRecord.DnsRecordTypeA.Ipv4 {
+				ips = append(ips, ip.Ip)
+			}
+
+			for _, ip := range body.Data.DnsRecord.DnsRecordTypeA.Ipv6 {
+				ips = append(ips, ip.Ip)
+			}
+
 			p.addDomainRecordsValue(
-				[]string{}, // todo: add A records
+				ips,
 				body.Data.DnsRecord.DnsRecordTypeCname,
 				[]string{}, // body.Data.DnsRecord.DnsRecordTypeMx, // todo: check wtf with [][]
 				body.Data.DnsRecord.DnsRecordTypeNs,
 				body.Data.DnsRecord.DnsRecordTypePtr,
 				body.Data.DnsRecord.DnsRecordTypeSoa,
+				[]string{},
 				source,
 				now,
 			)
@@ -448,6 +454,58 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			}
 
 			break
+		case SCAN_TYPE_OSS_INFO_IP:
+			source = PROVIDER_SOURCE_IP_INFO
+
+			var body osintEntities.IPInfoIPScanBody
+			err = json.Unmarshal(s.Data, &body)
+			if err != nil {
+				continue
+			}
+
+			p.addIdentityValues(0, "", "", body.Org, source, now)
+			p.addGeographicalValues(body.Region, body.Country, body.City, 0, 0, source, now)
+		case SCAN_TYPE_OSS_IP_API_IP, SCAN_TYPE_OSS_IP_API_DOMAIN:
+			source = PROVIDER_SOURCE_IP_API
+
+			var body osintEntities.IPAPIScanBody
+			err = json.Unmarshal(s.Data, &body)
+			if err != nil {
+				continue
+			}
+
+			//p.addIdentityValues(0, "", "", body.Org, source, now)
+			//p.addGeographicalValues(body.Region, body.Country, body.City, 0, 0, source, now)
+		case SCAN_TYPE_DNS_LOOKUP:
+			source = PROVIDER_SOURCE_DNS
+
+			var body dnsEntities.DNSLookupScanBody
+			err = json.Unmarshal(s.Data, &body)
+			if err != nil {
+				continue
+			}
+
+			p.addDomainRecordsValue(
+				body.IPs,
+				[]string{body.CanonicalName},
+				body.MailServers,
+				body.NameServers,
+				body.PointerRecords,
+				[]string{},
+				body.TextRecords,
+				source,
+				now,
+			)
+		case SCAN_TYPE_DNS_WHOIS_IP, SCAN_TYPE_DNS_WHOIS_DOMAIN:
+			source = PROVIDER_SOURCE_WHOIS
+
+			var body whoisEntities.WhoISScanBody
+			err = json.Unmarshal(s.Data, &body)
+			if err != nil {
+				continue
+			}
+
+			p.addWhoIsValues([]string{body.Raw}, source, s.CreatedAt)
 		default:
 			slog.Warn("unsupported scan body with ID: ", s.ID)
 			break
@@ -573,12 +631,12 @@ func (p *NetworkNodeProfile) addGeographicalValues(region, country, city string,
 	}
 
 	if len(city) > 0 {
-		p.Country = append(p.Country, scanStringValue{
+		p.City = append(p.City, scanStringValue{
 			CommonScanTag: CommonScanTag{
 				Source:    source,
 				Timestamp: timestamp,
 			},
-			Value: country,
+			Value: city,
 		})
 	}
 
@@ -805,7 +863,7 @@ func (p *NetworkNodeProfile) addPortValue(port uint64, banner, application, prot
 	}
 }
 
-func (p *NetworkNodeProfile) addDomainRecordsValue(a, cname, mx, ns, ptr, soa []string, source providerSource, timestamp time.Time) {
+func (p *NetworkNodeProfile) addDomainRecordsValue(a, cname, mx, ns, ptr, soa, txt []string, source providerSource, timestamp time.Time) {
 	for _, r := range a {
 		p.ARecords = append(p.ARecords, domainRecordValue{
 			CommonScanTag: CommonScanTag{
@@ -865,6 +923,32 @@ func (p *NetworkNodeProfile) addDomainRecordsValue(a, cname, mx, ns, ptr, soa []
 			Value: r,
 		})
 	}
+
+	for _, r := range txt {
+		p.TXTRecords = append(p.TXTRecords, domainRecordValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: r,
+		})
+	}
+}
+
+func (p *NetworkNodeProfile) addWhoIsValues(whois []string, source providerSource, timestamp time.Time) {
+	for _, w := range whois {
+		if len(w) == 0 {
+			continue
+		}
+
+		p.WHOIS = append(p.WHOIS, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: w,
+		})
+	}
 }
 
 type providerSource string
@@ -877,4 +961,7 @@ const (
 	PROVIDER_SOURCE_CROWDSEC                        = "CrowdSec"
 	PROVIDER_SOURCE_IP_WHOIS                        = "IPWhoIS"
 	PROVIDER_SOURCE_CRIMINAL_IP                     = "CriminalIP"
+	PROVIDER_SOURCE_IP_API                          = "IP-API"
+	PROVIDER_SOURCE_DNS                             = "DNS Lookup"
+	PROVIDER_SOURCE_WHOIS                           = "WHOIS Lookup"
 )

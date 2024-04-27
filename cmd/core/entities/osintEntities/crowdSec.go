@@ -1,4 +1,4 @@
-package ossEntities
+package osintEntities
 
 type CrowdSecIPScanBody struct {
 	Ip         string `json:"ip"`

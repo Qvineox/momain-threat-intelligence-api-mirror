@@ -1,4 +1,4 @@
-package ossEntities
+package osintEntities
 
 type IPInfoIPScanBody struct {
 	Ip       string `json:"ip"`

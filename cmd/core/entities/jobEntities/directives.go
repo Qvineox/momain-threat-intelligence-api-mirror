@@ -68,6 +68,7 @@ const (
 	OSS_PROVIDER_IP_WHO_IS
 	OSS_PROVIDER_CRIMINAL_IP
 	OSS_PROVIDER_IP_INFO
+	OSS_PROVIDER_IP_API
 )
 
 func (d *Directives) ToProto() *protoServices.Directives {

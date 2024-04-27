@@ -210,7 +210,7 @@ func (s *Scheduler) ScheduleJob(job *jobEntities.Job) error {
 			job.Advance() // should move status to STARTING
 
 			go func() {
-				err := h.HandleOSSJob(job)
+				err := h.HandleJob(job)
 				if err != nil {
 					job.DoneWithError(err)
 				} else {

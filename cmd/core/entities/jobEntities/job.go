@@ -228,7 +228,7 @@ type JobCreateParams struct {
 
 	CreatedByUserID *uint64 `json:"CreatedByUserID"`
 
-	OpenSourceProviders []SupportedOSSProvider `json:"Providers,omitempty" binding:"dive,oneof=0 1 2 3 4 5 6"`
+	OpenSourceProviders []SupportedOSSProvider `json:"Providers,omitempty" binding:"dive,oneof=0 1 2 3 4 5 6 7 8"`
 
 	Delay   uint64 `json:"Delay,omitempty"`
 	Timout  uint64 `json:"Timout,omitempty"`

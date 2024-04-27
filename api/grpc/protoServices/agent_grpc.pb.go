@@ -109,7 +109,9 @@ var Connection_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Jobs_StartOSS_FullMethodName = "/contracts.Jobs/StartOSS"
+	Jobs_StartOSS_FullMethodName   = "/contracts.Jobs/StartOSS"
+	Jobs_StartDNS_FullMethodName   = "/contracts.Jobs/StartDNS"
+	Jobs_StartWHOIS_FullMethodName = "/contracts.Jobs/StartWHOIS"
 )
 
 // JobsClient is the client API for Jobs service.
@@ -118,6 +120,8 @@ const (
 type JobsClient interface {
 	// StartJob accepts Job with all required params, streams back all queried and found results
 	StartOSS(ctx context.Context, in *Job, opts ...grpc.CallOption) (Jobs_StartOSSClient, error)
+	StartDNS(ctx context.Context, in *Job, opts ...grpc.CallOption) (Jobs_StartDNSClient, error)
+	StartWHOIS(ctx context.Context, in *Job, opts ...grpc.CallOption) (Jobs_StartWHOISClient, error)
 }
 
 type jobsClient struct {
@@ -160,12 +164,78 @@ func (x *jobsStartOSSClient) Recv() (*TargetAuditReport, error) {
 	return m, nil
 }
 
+func (c *jobsClient) StartDNS(ctx context.Context, in *Job, opts ...grpc.CallOption) (Jobs_StartDNSClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Jobs_ServiceDesc.Streams[1], Jobs_StartDNS_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &jobsStartDNSClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Jobs_StartDNSClient interface {
+	Recv() (*TargetAuditReport, error)
+	grpc.ClientStream
+}
+
+type jobsStartDNSClient struct {
+	grpc.ClientStream
+}
+
+func (x *jobsStartDNSClient) Recv() (*TargetAuditReport, error) {
+	m := new(TargetAuditReport)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *jobsClient) StartWHOIS(ctx context.Context, in *Job, opts ...grpc.CallOption) (Jobs_StartWHOISClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Jobs_ServiceDesc.Streams[2], Jobs_StartWHOIS_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &jobsStartWHOISClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Jobs_StartWHOISClient interface {
+	Recv() (*TargetAuditReport, error)
+	grpc.ClientStream
+}
+
+type jobsStartWHOISClient struct {
+	grpc.ClientStream
+}
+
+func (x *jobsStartWHOISClient) Recv() (*TargetAuditReport, error) {
+	m := new(TargetAuditReport)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // JobsServer is the server API for Jobs service.
 // All implementations must embed UnimplementedJobsServer
 // for forward compatibility
 type JobsServer interface {
 	// StartJob accepts Job with all required params, streams back all queried and found results
 	StartOSS(*Job, Jobs_StartOSSServer) error
+	StartDNS(*Job, Jobs_StartDNSServer) error
+	StartWHOIS(*Job, Jobs_StartWHOISServer) error
 	mustEmbedUnimplementedJobsServer()
 }
 
@@ -175,6 +245,12 @@ type UnimplementedJobsServer struct {
 
 func (UnimplementedJobsServer) StartOSS(*Job, Jobs_StartOSSServer) error {
 	return status.Errorf(codes.Unimplemented, "method StartOSS not implemented")
+}
+func (UnimplementedJobsServer) StartDNS(*Job, Jobs_StartDNSServer) error {
+	return status.Errorf(codes.Unimplemented, "method StartDNS not implemented")
+}
+func (UnimplementedJobsServer) StartWHOIS(*Job, Jobs_StartWHOISServer) error {
+	return status.Errorf(codes.Unimplemented, "method StartWHOIS not implemented")
 }
 func (UnimplementedJobsServer) mustEmbedUnimplementedJobsServer() {}
 
@@ -210,6 +286,48 @@ func (x *jobsStartOSSServer) Send(m *TargetAuditReport) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Jobs_StartDNS_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Job)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobsServer).StartDNS(m, &jobsStartDNSServer{stream})
+}
+
+type Jobs_StartDNSServer interface {
+	Send(*TargetAuditReport) error
+	grpc.ServerStream
+}
+
+type jobsStartDNSServer struct {
+	grpc.ServerStream
+}
+
+func (x *jobsStartDNSServer) Send(m *TargetAuditReport) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Jobs_StartWHOIS_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Job)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobsServer).StartWHOIS(m, &jobsStartWHOISServer{stream})
+}
+
+type Jobs_StartWHOISServer interface {
+	Send(*TargetAuditReport) error
+	grpc.ServerStream
+}
+
+type jobsStartWHOISServer struct {
+	grpc.ServerStream
+}
+
+func (x *jobsStartWHOISServer) Send(m *TargetAuditReport) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Jobs_ServiceDesc is the grpc.ServiceDesc for Jobs service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -221,6 +339,16 @@ var Jobs_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "StartOSS",
 			Handler:       _Jobs_StartOSS_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StartDNS",
+			Handler:       _Jobs_StartDNS_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StartWHOIS",
+			Handler:       _Jobs_StartWHOIS_Handler,
 			ServerStreams: true,
 		},
 	},

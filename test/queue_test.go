@@ -29,7 +29,7 @@ func TestQueue(t *testing.T) {
 
 	var job1 = &jobEntities.Job{}
 	job1.WithPayload([]string{"10.10.10.10/32", "ya.ru"}, []string{})
-	job1.WithMetadata(jobEntities.JOB_TYPE_OSS, jobEntities.JOB_PRIORITY_LOW, 10)
+	job1.WithMetadata(jobEntities.JOB_TYPE_OSINT, jobEntities.JOB_PRIORITY_LOW, 10)
 	job1.WithOSSDirective([]jobEntities.SupportedOSSProvider{
 		jobEntities.OSS_PROVIDER_IP_WHO_IS,
 		jobEntities.OSS_PROVIDER_CROWD_SEC,
@@ -68,7 +68,7 @@ func TestQueue(t *testing.T) {
 
 	var job2 = &jobEntities.Job{}
 	job2.WithPayload([]string{"20.20.20.20/32", "mail.ru", "qvineox.ru"}, []string{})
-	job2.WithMetadata(jobEntities.JOB_TYPE_OSS, jobEntities.JOB_PRIORITY_MEDIUM, 10)
+	job2.WithMetadata(jobEntities.JOB_TYPE_OSINT, jobEntities.JOB_PRIORITY_MEDIUM, 10)
 	job2.WithOSSDirective([]jobEntities.SupportedOSSProvider{
 		jobEntities.OSS_PROVIDER_VIRUS_TOTAL,
 	}, &jobEntities.DirectiveTimings{
@@ -79,7 +79,7 @@ func TestQueue(t *testing.T) {
 
 	var job3 = &jobEntities.Job{}
 	job3.WithPayload([]string{"30.30.30.30/32", "google.com"}, []string{"8.8.8.8"})
-	job3.WithMetadata(jobEntities.JOB_TYPE_OSS, jobEntities.JOB_PRIORITY_HIGH, 10)
+	job3.WithMetadata(jobEntities.JOB_TYPE_OSINT, jobEntities.JOB_PRIORITY_HIGH, 10)
 	job3.WithOSSDirective([]jobEntities.SupportedOSSProvider{
 		jobEntities.OSS_PROVIDER_CROWD_SEC,
 		jobEntities.OSS_PROVIDER_IP_QUALITY_SCORE,
@@ -123,7 +123,7 @@ func TestQueue(t *testing.T) {
 
 	var job4 = &jobEntities.Job{}
 	job4.WithPayload([]string{"40.40.40.40/32", "vk.ru"}, []string{"4.4.4.4"})
-	job4.WithMetadata(jobEntities.JOB_TYPE_OSS, jobEntities.JOB_PRIORITY_MEDIUM, 30)
+	job4.WithMetadata(jobEntities.JOB_TYPE_OSINT, jobEntities.JOB_PRIORITY_MEDIUM, 30)
 	job4.WithOSSDirective([]jobEntities.SupportedOSSProvider{
 		jobEntities.OSS_PROVIDER_SHODAN,
 	}, &jobEntities.DirectiveTimings{
@@ -138,7 +138,7 @@ func TestQueue(t *testing.T) {
 
 	var job5 = &jobEntities.Job{}
 	job5.WithPayload([]string{"50.50.50.50/32", "mirea.ru"}, []string{})
-	job5.WithMetadata(jobEntities.JOB_TYPE_OSS, jobEntities.JOB_PRIORITY_CRITICAL, 20)
+	job5.WithMetadata(jobEntities.JOB_TYPE_OSINT, jobEntities.JOB_PRIORITY_CRITICAL, 20)
 	job5.WithOSSDirective([]jobEntities.SupportedOSSProvider{
 		jobEntities.OSS_PROVIDER_SHODAN,
 	}, &jobEntities.DirectiveTimings{
