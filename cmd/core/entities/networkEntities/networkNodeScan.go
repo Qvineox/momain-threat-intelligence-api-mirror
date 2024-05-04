@@ -163,6 +163,16 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 		scan.RiskScore = content.GetRiskScore()
 		break
 
+	case SCAN_TYPE_OSS_IP_API_IP, SCAN_TYPE_OSS_IP_API_DOMAIN:
+		content := osintEntities.IPAPIScanBody{}
+		err = json.Unmarshal(data, &content)
+		if err != nil {
+			return err
+		}
+
+		scan.RiskScore = content.GetRiskScore()
+		break
+
 	case SCAN_TYPE_DNS_LOOKUP:
 		content := dnsEntities.DNSLookupScanBody{}
 		err = json.Unmarshal(data, &content)

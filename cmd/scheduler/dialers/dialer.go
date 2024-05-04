@@ -127,7 +127,7 @@ func (d *ScanAgentDialer) HandleJob(job *jobEntities.Job) error {
 		r := recover()
 
 		if r != nil {
-			slog.Error("dialer recovered with error: " + r.(string))
+			slog.Error("dialer recovered with error: " + fmt.Sprint(r))
 			job.Meta.Status = jobEntities.JOB_STATUS_PANIC
 		}
 

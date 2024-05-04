@@ -19,6 +19,7 @@ type NetworkNodeProfile struct {
 
 	// owner identity data
 	ASN          []scanIntValue    `json:"ASN"`
+	AS           []scanStringValue `json:"AS"`
 	ISP          []scanStringValue `json:"ISP"`
 	JARM         []scanStringValue `json:"JARM"`
 	Organisation []scanStringValue `json:"Organisation"`
@@ -214,7 +215,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 				continue
 			}
 
-			p.addIdentityValues(body.Data.Attributes.ASN, "", body.Data.Attributes.JARM, body.Data.Attributes.ASOwner, source, now)
+			p.addIdentityValues(body.Data.Attributes.ASN, "", "", body.Data.Attributes.JARM, body.Data.Attributes.ASOwner, source, now)
 			p.addGeographicalValues(body.Data.Attributes.RegionalInternetRegistry, body.Data.Attributes.Country, "", 0, 0, source, now)
 			p.addProviderScoring(body.GetRiskScore(), source, now)
 
@@ -234,7 +235,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			data := body.Data.Attributes
 
-			p.addIdentityValues(0, "", data.JARM, "", source, now)
+			p.addIdentityValues(0, "", "", data.JARM, "", source, now)
 			p.addProviderScoring(body.GetRiskScore(), source, now)
 			p.addDomainData(data.Registrar, 0, time.Time{}, false, false, source, now)
 
@@ -287,9 +288,9 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			}
 
 			p.addProviderScoring(body.GetRiskScore(), source, now)
-			p.addIdentityValues(body.ASN, body.ISP, "", body.Organization, source, now)
+			p.addIdentityValues(body.ASN, "", body.ISP, "", body.Organization, source, now)
 			p.addGeographicalValues(body.Region, body.CountryCode, body.City, body.Longitude, body.Latitude, source, now)
-			p.addAnonymityToolValues(body.Vpn, body.Proxy, body.Tor, source, now)
+			p.addAnonymityToolValues(&body.Vpn, &body.Proxy, &body.Tor, nil, source, now)
 
 			break
 		case SCAN_TYPE_OSS_IPQS_URL, SCAN_TYPE_OSS_IPQS_DOMAIN:
@@ -339,7 +340,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			p.addGeographicalValues(body.RegionCode, body.CountryName, body.City, body.Longitude, body.Latitude, source, now)
 
 			asn, _ := strconv.Atoi(body.Asn)
-			p.addIdentityValues(asn, body.Isp, "", body.Org, source, now)
+			p.addIdentityValues(asn, "", body.Isp, "", body.Org, source, now)
 
 			for _, port := range body.Ports {
 				p.addPortValue(uint64(port), "", "", "", "", source, now)
@@ -361,7 +362,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 			}
 
 			p.addGeographicalValues("", body.Location.Country, body.Location.City, body.Location.Longitude, body.Location.Latitude, source, now)
-			p.addIdentityValues(body.AsNum, "", "", "", source, now)
+			p.addIdentityValues(body.AsNum, "", "", "", "", source, now)
 
 			for _, c := range body.Classifications.Classifications {
 				p.addCategory(fmt.Sprintf("%s (%s)", c.Label, c.Description), source, now)
@@ -381,7 +382,9 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 			// todo: add category data
 
-			p.addAnonymityToolValues(body.Issues.IsAnonymousVpn || body.Issues.IsVpn, body.Issues.IsProxy, body.Issues.IsTor, source, now)
+			isVPN := body.Issues.IsAnonymousVpn || body.Issues.IsVpn
+
+			p.addAnonymityToolValues(&isVPN, &body.Issues.IsProxy, &body.Issues.IsTor, &body.Issues.IsHosting, source, now)
 
 			if body.Domain.Count > 0 && len(body.Domain.Data) > 0 {
 				// todo: sort by date
@@ -397,11 +400,11 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 
 				data := body.Whois.Data[0]
 
-				//p.addGeographicalValues(body.RegionCode, body.CountryName, body.City, body.Longitude, body.Latitude, source, now)
-				//p.addIdentityValues(body.Asn, body.Isp, "", body.Org, source, now)
+				// p.addGeographicalValues(body.RegionCode, body.CountryName, body.City, body.Longitude, body.Latitude, source, now)
+				// p.addIdentityValues(body.Asn, body.Isp, "", body.Org, source, now)
 
 				p.addGeographicalValues(data.Region, data.OrgCountryCode, data.City, data.Longitude, data.Latitude, source, now)
-				p.addIdentityValues(data.AsNo, "", "", data.OrgName, source, now)
+				p.addIdentityValues(data.AsNo, "", "", "", data.OrgName, source, now)
 			}
 
 			for _, port := range body.Port.Data {
@@ -463,7 +466,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 				continue
 			}
 
-			p.addIdentityValues(0, "", "", body.Org, source, now)
+			p.addIdentityValues(0, "", "", "", body.Org, source, now)
 			p.addGeographicalValues(body.Region, body.Country, body.City, 0, 0, source, now)
 		case SCAN_TYPE_OSS_IP_API_IP, SCAN_TYPE_OSS_IP_API_DOMAIN:
 			source = PROVIDER_SOURCE_IP_API
@@ -474,8 +477,9 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 				continue
 			}
 
-			//p.addIdentityValues(0, "", "", body.Org, source, now)
-			//p.addGeographicalValues(body.Region, body.Country, body.City, 0, 0, source, now)
+			p.addIdentityValues(0, body.AS, body.ISP, "", body.Organisation, source, now)
+			p.addGeographicalValues(body.Region, body.Country, body.City, body.Longitude, body.Latitude, source, now)
+			p.addAnonymityToolValues(nil, &body.IsProxy, nil, &body.IsHosting, source, now)
 		case SCAN_TYPE_DNS_LOOKUP:
 			source = PROVIDER_SOURCE_DNS
 
@@ -517,7 +521,7 @@ func (p *NetworkNodeProfile) WithNodeScans(scans []NetworkNodeScan) *NetworkNode
 	return p
 }
 
-func (p *NetworkNodeProfile) addIdentityValues(asn int, isp, jarm, org string, source providerSource, timestamp time.Time) {
+func (p *NetworkNodeProfile) addIdentityValues(asn int, as, isp, jarm, org string, source providerSource, timestamp time.Time) {
 	if asn > 0 {
 		p.ASN = append(p.ASN, scanIntValue{
 			CommonScanTag: CommonScanTag{
@@ -525,6 +529,16 @@ func (p *NetworkNodeProfile) addIdentityValues(asn int, isp, jarm, org string, s
 				Timestamp: timestamp,
 			},
 			Value: asn,
+		})
+	}
+
+	if len(as) > 0 {
+		p.AS = append(p.AS, scanStringValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: as,
 		})
 	}
 
@@ -649,30 +663,46 @@ func (p *NetworkNodeProfile) addGeographicalValues(region, country, city string,
 	}
 }
 
-func (p *NetworkNodeProfile) addAnonymityToolValues(isVPN, isProxy, isTOR bool, source providerSource, timestamp time.Time) {
-	p.IsVPN = append(p.IsVPN, scanBoolValue{
-		CommonScanTag: CommonScanTag{
-			Source:    source,
-			Timestamp: timestamp,
-		},
-		Value: isVPN,
-	})
+func (p *NetworkNodeProfile) addAnonymityToolValues(isVPN, isProxy, isTOR, isHosting *bool, source providerSource, timestamp time.Time) {
+	if isVPN != nil {
+		p.IsVPN = append(p.IsVPN, scanBoolValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: *isVPN,
+		})
+	}
 
-	p.IsProxy = append(p.IsProxy, scanBoolValue{
-		CommonScanTag: CommonScanTag{
-			Source:    source,
-			Timestamp: timestamp,
-		},
-		Value: isProxy,
-	})
+	if isProxy != nil {
+		p.IsProxy = append(p.IsProxy, scanBoolValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: *isProxy,
+		})
+	}
 
-	p.IsTOR = append(p.IsTOR, scanBoolValue{
-		CommonScanTag: CommonScanTag{
-			Source:    source,
-			Timestamp: timestamp,
-		},
-		Value: isTOR,
-	})
+	if isTOR != nil {
+		p.IsTOR = append(p.IsTOR, scanBoolValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: *isTOR,
+		})
+	}
+
+	if isHosting != nil {
+		p.IsHosting = append(p.IsHosting, scanBoolValue{
+			CommonScanTag: CommonScanTag{
+				Source:    source,
+				Timestamp: timestamp,
+			},
+			Value: *isHosting,
+		})
+	}
 }
 
 func (p *NetworkNodeProfile) addMailingValues(isValid, isDisposable, canDeliverTo, isCommon, isGeneric, isCatchAll bool, source providerSource, timestamp time.Time) {

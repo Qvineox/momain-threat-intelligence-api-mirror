@@ -39,30 +39,31 @@ loop:
 				continue
 			}
 
-			routines[networkEntities.ScanType(msg.GetScanType())/100].input <- msg
+			routineIndex := msg.GetScanType() / 100
+			routines[routineIndex].input <- msg
 
-			//switch networkEntities.ScanType(msg.GetScanType()) / 100 {
-			//case 1:
+			// switch networkEntities.ScanType(msg.GetScanType()) / 100 {
+			// case 1:
 			//	routines[0].input <- msg
-			//case 2:
+			// case 2:
 			//	routines[1].input <- msg
-			//case 3:
+			// case 3:
 			//	routines[2].input <- msg
-			//case 4:
+			// case 4:
 			//	routines[3].input <- msg
-			//case 5:
+			// case 5:
 			//	routines[4].input <- msg
-			//case 6:
+			// case 6:
 			//	routines[5].input <- msg
-			//case 7:
+			// case 7:
 			//	routines[6].input <- msg
-			//case 11:
+			// case 11:
 			//	routines[11].input <- msg
-			//case 12:
+			// case 12:
 			//	routines[12].input <- msg
-			//default:
+			// default:
 			//	slog.Warn("unsupported scan type message received")
-			//}
+			// }
 		}
 	}
 
@@ -74,7 +75,7 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 
 	switch h.job.Meta.Type {
 	case jobEntities.JOB_TYPE_OSINT:
-		for i := 0; i < 8; i++ {
+		for i := 0; i < 9; i++ {
 			ch := make(chan *protoServices.TargetAuditReport, 100)
 
 			routines[i] = handlerRoutine{
