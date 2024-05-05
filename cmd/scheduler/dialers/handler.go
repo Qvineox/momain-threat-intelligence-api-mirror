@@ -14,7 +14,7 @@ import (
 )
 
 type JobHandler struct {
-	repo core.INetworkNodesRepo
+	service core.INetworkNodesService
 
 	scans chan *protoServices.TargetAuditReport
 
@@ -22,8 +22,8 @@ type JobHandler struct {
 	job   *jobEntities.Job
 }
 
-func NewJobHandler(a *agentEntities.ScanAgent, j *jobEntities.Job, r core.INetworkNodesRepo, ch chan *protoServices.TargetAuditReport) JobHandler {
-	return JobHandler{agent: a, job: j, repo: r, scans: ch}
+func NewJobHandler(a *agentEntities.ScanAgent, j *jobEntities.Job, n core.INetworkNodesService, ch chan *protoServices.TargetAuditReport) JobHandler {
+	return JobHandler{agent: a, job: j, service: n, scans: ch}
 }
 
 func (h *JobHandler) Start(ctx context.Context, wg *sync.WaitGroup) {
@@ -79,7 +79,7 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 			ch := make(chan *protoServices.TargetAuditReport, 100)
 
 			routines[i] = handlerRoutine{
-				repo:      h.repo,          // repo to save records to database
+				service:   h.service,       // service to save records to database
 				input:     ch,              // passing audit reports from agent
 				wg:        wg,              // required to wait for all transactions to end
 				ctx:       ctx,             // passing context to finish underlying routines
@@ -95,7 +95,7 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 		ch := make(chan *protoServices.TargetAuditReport, 100)
 
 		routines[11] = handlerRoutine{
-			repo:      h.repo,
+			service:   h.service,
 			input:     ch,
 			wg:        wg,
 			ctx:       ctx,
@@ -110,7 +110,7 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 		ch := make(chan *protoServices.TargetAuditReport, 100)
 
 		routines[12] = handlerRoutine{
-			repo:      h.repo,
+			service:   h.service,
 			input:     ch,
 			wg:        wg,
 			ctx:       ctx,
@@ -129,7 +129,8 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 }
 
 type handlerRoutine struct {
-	repo  core.INetworkNodesRepo
+	service core.INetworkNodesService
+
 	input chan *protoServices.TargetAuditReport
 	wg    *sync.WaitGroup
 	ctx   context.Context
@@ -166,13 +167,13 @@ func (r *handlerRoutine) start() {
 				Type: jobEntities.TargetType(t.Type),
 			}
 
-			err = r.repo.CreateNetworkNodeWithIdentity(scan, target)
+			_, err = r.service.SaveNetworkNodeWithIdentity(scan, target)
 		} else {
 			c, _ := json.Marshal(errorScanData{
 				ErrorMessage: string(msg.Content),
 			})
 
-			err = r.repo.CreateNetworkNodeWithIdentity(networkEntities.NetworkNodeScan{
+			_, err = r.service.SaveNetworkNodeWithIdentity(networkEntities.NetworkNodeScan{
 				IsComplete: false,
 				JobUUID:    r.jobUUID,
 				ScanTypeID: uint64(msg.GetScanType()),

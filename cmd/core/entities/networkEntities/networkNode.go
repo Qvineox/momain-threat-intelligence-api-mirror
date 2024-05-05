@@ -23,6 +23,9 @@ type NetworkNode struct {
 	// Profile is used to represent all collected data on selected entity
 	Profile *NetworkNodeProfile `json:"Profile,omitempty" gorm:"-"`
 
+	// Scoring contains all collected scores from different sources
+	Scoring *NetworkNodeScoring `json:"Scoring,omitempty" gorm:"-"`
+
 	CreatedAt time.Time      `json:"CreatedAt"`
 	UpdatedAt time.Time      `json:"UpdatedAt"`
 	DeletedAt gorm.DeletedAt `json:"DeletedAt,omitempty" gorm:"index"`

@@ -33,8 +33,8 @@ const (
 	SCAN_TYPE_OSS_IP_API_DOMAIN           = 802
 	SCAN_TYPE_DNS_LOOKUP                  = 1101
 	SCAN_TYPE_DNS_REVERSE_LOOKUP          = 1102
-	SCAN_TYPE_DNS_WHOIS_IP                = 1201
-	SCAN_TYPE_DNS_WHOIS_DOMAIN            = 1202
+	SCAN_TYPE_WHOIS_IP                    = 1201
+	SCAN_TYPE_WHOIS_DOMAIN                = 1202
 )
 
 var DefaultNetworkNodeScanTypes = []NetworkNodeScanType{
@@ -124,12 +124,12 @@ var DefaultNetworkNodeScanTypes = []NetworkNodeScanType{
 		Description: "Обратный опрос системы доменных имен по IP",
 	},
 	{
-		ID:          uint64(SCAN_TYPE_DNS_WHOIS_IP),
+		ID:          uint64(SCAN_TYPE_WHOIS_IP),
 		Name:        "WHOIS IP Lookup",
 		Description: "Получение WHOIS информации об IP",
 	},
 	{
-		ID:          uint64(SCAN_TYPE_DNS_WHOIS_DOMAIN),
+		ID:          uint64(SCAN_TYPE_WHOIS_DOMAIN),
 		Name:        "WHOIS Domain Lookup",
 		Description: "Получение WHOIS информации о домене",
 	},

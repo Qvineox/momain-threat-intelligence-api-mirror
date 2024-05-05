@@ -191,7 +191,7 @@ func (scan *NetworkNodeScan) ProcessCollectedData(data []byte) error {
 
 		break
 
-	case SCAN_TYPE_DNS_WHOIS_IP, SCAN_TYPE_DNS_WHOIS_DOMAIN:
+	case SCAN_TYPE_WHOIS_IP, SCAN_TYPE_WHOIS_DOMAIN:
 		content := whoisEntities.WhoISScanBody{}
 		err = json.Unmarshal(data, &content)
 		if err != nil {

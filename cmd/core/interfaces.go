@@ -102,6 +102,11 @@ type INetworkNodesService interface {
 
 	SaveNetworkNode(node networkEntities.NetworkNode) (networkEntities.NetworkNode, error)
 	DeleteNetworkNode(uuid pgtype.UUID) (int64, error)
+
+	// EvaluateNetworkNodeScoring queries node from database, evaluates scoring via IScoringService and saves new values
+	EvaluateNetworkNodeScoring(uuid pgtype.UUID) (networkEntities.NetworkNode, error)
+
+	SaveNetworkNodeWithIdentity(scan networkEntities.NetworkNodeScan, target jobEntities.Target) (uuid pgtype.UUID, err error)
 }
 
 type INetworkNodesRepo interface {
@@ -118,7 +123,12 @@ type INetworkNodesRepo interface {
 
 	// CreateNetworkNodeWithIdentity creates new network node scan via SaveNetworkNodeScan.
 	// Also creates new node from host value, if it doesn't exist via SelectOrCreateByTarget.
-	CreateNetworkNodeWithIdentity(scan networkEntities.NetworkNodeScan, target jobEntities.Target) error
+	CreateNetworkNodeWithIdentity(scan networkEntities.NetworkNodeScan, target jobEntities.Target) (uuid pgtype.UUID, err error)
+}
+
+type IScoringService interface {
+	// AnalyzeNodes adds scoring values into networkEntities.NetworkNode's Scoring field and returns them
+	AnalyzeNodes(nodes []networkEntities.NetworkNode) ([]networkEntities.NetworkNode, error)
 }
 
 type IJobsService interface {

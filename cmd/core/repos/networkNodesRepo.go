@@ -88,16 +88,16 @@ func (r NetworkNodesRepoImpl) SaveNetworkNodeScan(scan networkEntities.NetworkNo
 	return scan, err
 }
 
-func (r NetworkNodesRepoImpl) CreateNetworkNodeWithIdentity(scan networkEntities.NetworkNodeScan, target jobEntities.Target) error {
+func (r NetworkNodesRepoImpl) CreateNetworkNodeWithIdentity(scan networkEntities.NetworkNodeScan, target jobEntities.Target) (pgtype.UUID, error) {
 	node, err := r.SelectOrCreateByTarget(target)
 	if err != nil {
-		return err
+		return pgtype.UUID{}, err
 	}
 
 	scan.NodeUUID = node.UUID
 
 	_, err = r.SaveNetworkNodeScan(scan)
-	return err
+	return scan.NodeUUID, err
 }
 
 func (r NetworkNodesRepoImpl) SelectNetworkNodeByUUID(uuid pgtype.UUID) (networkEntities.NetworkNode, error) {
@@ -108,7 +108,7 @@ func (r NetworkNodesRepoImpl) SelectNetworkNodeByUUID(uuid pgtype.UUID) (network
 		return networkEntities.NetworkNode{}, err
 	}
 
-	node.Scans, err = r.SelectLatestScansByNodeUUID(node.UUID)
+	node.Scans, err = r.selectLatestScansByNodeUUID(node.UUID)
 	if err != nil {
 		slog.Warn("failed to query latest node scans: " + err.Error())
 	}
@@ -116,7 +116,7 @@ func (r NetworkNodesRepoImpl) SelectNetworkNodeByUUID(uuid pgtype.UUID) (network
 	return node, nil
 }
 
-func (r NetworkNodesRepoImpl) SelectLatestScansByNodeUUID(uuid pgtype.UUID) ([]networkEntities.NetworkNodeScan, error) {
+func (r NetworkNodesRepoImpl) selectLatestScansByNodeUUID(uuid pgtype.UUID) ([]networkEntities.NetworkNodeScan, error) {
 	scans := make([]networkEntities.NetworkNodeScan, 0)
 
 	err := r.Raw("SELECT DISTINCT ON (scan_type_id) * "+
