@@ -2,6 +2,7 @@ package networkEntities
 
 import (
 	"github.com/jackc/pgtype"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"time"
 )
@@ -24,7 +25,8 @@ type NetworkNode struct {
 	Profile *NetworkNodeProfile `json:"Profile,omitempty" gorm:"-"`
 
 	// Scoring contains all collected scores from different sources
-	Scoring *NetworkNodeScoring `json:"Scoring,omitempty" gorm:"-"`
+	Scoring     *NetworkNodeScoring                    `json:"Scoring,omitempty" gorm:"-"`
+	ScoringJSON datatypes.JSONType[NetworkNodeScoring] `json:"-" gorm:"column:latest_scoring"`
 
 	CreatedAt time.Time      `json:"CreatedAt"`
 	UpdatedAt time.Time      `json:"UpdatedAt"`

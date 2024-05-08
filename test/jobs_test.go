@@ -14,7 +14,7 @@ func TestJob(t *testing.T) {
 	})
 
 	t.Run("metadata assignment", func(t *testing.T) {
-		job.WithMetadata(jobEntities.JOB_TYPE_OSINT, jobEntities.JOB_PRIORITY_MEDIUM, 10)
+		job.WithMetadata(jobEntities.JOB_TYPE_OSINT, jobEntities.JOB_PRIORITY_MEDIUM, 10, nil)
 
 		require.Equal(t, int64(10), job.Meta.Weight)
 		require.Equal(t, jobEntities.JOB_TYPE_OSINT, job.Meta.Type)

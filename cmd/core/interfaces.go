@@ -128,7 +128,7 @@ type INetworkNodesRepo interface {
 
 type IScoringService interface {
 	// AnalyzeNodes adds scoring values into networkEntities.NetworkNode's Scoring field and returns them
-	AnalyzeNodes(nodes []networkEntities.NetworkNode) ([]networkEntities.NetworkNode, error)
+	AnalyzeNodes(nodes []*networkEntities.NetworkNode) ([]*networkEntities.NetworkNode, error)
 }
 
 type IJobsService interface {

@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -621,7 +622,7 @@ func (p *NetworkNodeProfile) addGeographicalValues(region, country, city string,
 				Source:    source,
 				Timestamp: timestamp,
 			},
-			Value: region,
+			Value: strings.ToLower(region),
 		})
 	}
 
@@ -631,7 +632,7 @@ func (p *NetworkNodeProfile) addGeographicalValues(region, country, city string,
 				Source:    source,
 				Timestamp: timestamp,
 			},
-			Value: country,
+			Value: strings.ToLower(country),
 		})
 	}
 
@@ -641,7 +642,7 @@ func (p *NetworkNodeProfile) addGeographicalValues(region, country, city string,
 				Source:    source,
 				Timestamp: timestamp,
 			},
-			Value: city,
+			Value: strings.ToLower(city),
 		})
 	}
 

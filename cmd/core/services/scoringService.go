@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"domain_threat_intelligence_api/api/grpc/protoServices"
+	"domain_threat_intelligence_api/cmd/core/entities/dnsEntities"
 	"domain_threat_intelligence_api/cmd/core/entities/networkEntities"
+	"encoding/json"
 	"errors"
 	"github.com/montanaflynn/stats"
 	"google.golang.org/grpc"
@@ -30,7 +32,7 @@ func NewScoringServiceImpl(host string, port uint64) *ScoringServiceImpl {
 	return &ScoringServiceImpl{analyzerClient: protoServices.NewDomainAnalysisServiceClient(conn)}
 }
 
-func (s ScoringServiceImpl) AnalyzeNodes(nodes []networkEntities.NetworkNode) ([]networkEntities.NetworkNode, error) {
+func (s ScoringServiceImpl) AnalyzeNodes(nodes []*networkEntities.NetworkNode) ([]*networkEntities.NetworkNode, error) {
 	if s.analyzerClient == nil {
 		return nil, errors.New("analyzer client not initialized")
 	}
@@ -41,7 +43,7 @@ func (s ScoringServiceImpl) AnalyzeNodes(nodes []networkEntities.NetworkNode) ([
 	for _, node := range nodes {
 		switch node.TypeID {
 		case 2: // domain
-			_ = s.analyzeDomain(&node, wg)
+			_ = s.analyzeDomain(node, wg)
 		default:
 			node.Scoring = &networkEntities.NetworkNodeScoring{}
 
@@ -56,6 +58,10 @@ func (s ScoringServiceImpl) AnalyzeNodes(nodes []networkEntities.NetworkNode) ([
 }
 
 func (s ScoringServiceImpl) analyzeDomain(node *networkEntities.NetworkNode, wg *sync.WaitGroup) error {
+	if len(node.Scans) == 0 {
+		return errors.New("dns resource records scans required when analyzing domain")
+	}
+
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(30*time.Second))
 	defer cancel()
 	defer wg.Done()
@@ -71,17 +77,21 @@ func (s ScoringServiceImpl) analyzeDomain(node *networkEntities.NetworkNode, wg 
 		Name:      node.Identity,
 	})
 
+	if err != nil {
+		return errors.New("failed to connect: " + err.Error())
+	}
+
 	now := time.Now()
 	node.Scoring = &networkEntities.NetworkNodeScoring{
 		DGAScore:              sc.DgaScore,
 		SemanticScore:         sc.SemanticScore,
 		DNSScore:              sc.ResourceScore,
-		OverallScore:          sc.FinalScore,
+		FinalScore:            sc.FinalScore,
 		Tag:                   networkEntities.ScoreTag(sc.GetTag()),
 		LatestScoreEvaluation: &now,
 	}
 
-	if node.Scoring.Tag > networkEntities.SCORE_SUSPICIOUS {
+	if *node.Scoring.FinalScore == 0 || node.Scoring.Tag > networkEntities.SCORE_SUSPICIOUS {
 		node.Scoring.IsMalicious = true
 	}
 
@@ -121,13 +131,27 @@ func (s ScoringServiceImpl) prepareProtoScoringPayload(node networkEntities.Netw
 		MaxRepeated:     &mRepeated,
 	}
 
+	i := slices.IndexFunc(node.Scans, func(n networkEntities.NetworkNodeScan) bool {
+		return n.ScanTypeID == networkEntities.SCAN_TYPE_DNS_LOOKUP
+	})
+
+	if i == -1 {
+		return nil, nil, errors.New("dns resource records scan not found")
+	}
+
+	lookup := dnsEntities.DNSLookupScanBody{}
+	err = json.Unmarshal(node.Scans[i].Data, &lookup)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	resources := &protoServices.ResourceRecordsData{
-		ARecords:     0,
-		MxRecords:    0,
-		CnameRecords: 0,
-		TxtRecords:   0,
-		PtrRecords:   0,
-		PtrRatio:     0,
+		ARecords:     int64(len(lookup.IPs)),
+		MxRecords:    int64(len(lookup.MailServers)),
+		CnameRecords: int64(len(lookup.CanonicalName)),
+		TxtRecords:   int64(len(lookup.TextRecords)),
+		PtrRecords:   int64(len(lookup.PointerRecords)),
+		PtrRatio:     1,
 	}
 
 	return semantics, resources, nil

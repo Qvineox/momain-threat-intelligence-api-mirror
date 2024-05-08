@@ -49,10 +49,10 @@ message SemanticData {
 }
 
 message ResourceRecordsData {
-  float aRecords = 1;
-  float mxRecords = 2;
-  float cnameRecords = 3;
-  float txtRecords = 4;
-  float ptrRecords = 5;
+  int64 aRecords = 1;
+  int64 mxRecords = 2;
+  int64 cnameRecords = 3;
+  int64 txtRecords = 4;
+  int64 ptrRecords = 5;
   float ptrRatio = 6;
 }

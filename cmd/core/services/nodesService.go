@@ -72,14 +72,14 @@ func (n NodesServiceImpl) EvaluateNetworkNodeScoring(uuid pgtype.UUID) (networkE
 		return networkEntities.NetworkNode{}, errors.New("node not found")
 	}
 
-	nodes, err := n.scoring.AnalyzeNodes([]networkEntities.NetworkNode{node})
+	nodes, err := n.scoring.AnalyzeNodes([]*networkEntities.NetworkNode{&node})
 	if err != nil {
 		return networkEntities.NetworkNode{}, err
 	} else if len(nodes) != 1 {
 		return networkEntities.NetworkNode{}, errors.New("multiple nodes returned from analyser")
 	}
 
-	node, err = n.nodesRepo.SaveNetworkNode(nodes[0])
+	node, err = n.nodesRepo.SaveNetworkNode(*nodes[0])
 	if err != nil {
 		return networkEntities.NetworkNode{}, err
 	}
