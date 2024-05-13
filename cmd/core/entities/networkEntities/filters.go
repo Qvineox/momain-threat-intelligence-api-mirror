@@ -11,4 +11,8 @@ type NetworkNodeSearchFilter struct {
 	DiscoveredAfter  *time.Time `json:"DiscoveredAfter" form:"discovered_after" time_format:"2006-01-02"`
 	DiscoveredBefore *time.Time `json:"DiscoveredBefore" form:"discovered_before" time_format:"2006-01-02"`
 	SearchString     string     `json:"SearchString" form:"search_string"`
+
+	// result formatting
+	LoadScans    bool `json:"LoadScans" form:"load_scans"`
+	LoadProfiles bool `json:"LoadProfiles" form:"load_profiles"`
 }

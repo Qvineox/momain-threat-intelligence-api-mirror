@@ -4,6 +4,7 @@ import (
 	"domain_threat_intelligence_api/api/grpc/protoServices"
 	"domain_threat_intelligence_api/cmd/core/entities/networkEntities"
 	"errors"
+	"fmt"
 	"gorm.io/datatypes"
 	"reflect"
 	"time"
@@ -61,6 +62,48 @@ func (j *Job) WithOSSDirective(providers []SupportedOSSProvider, timings *Direct
 	j.Directives.OpenSourceScanDirectives = &OSSDirectives{
 		Providers: providers,
 		Timings:   t,
+	}
+
+	return j
+}
+
+func (j *Job) WithDNSDirective(reverse bool, repeatReverse uint64, timings *DirectiveTimings) *Job {
+	var t *DirectiveTimings
+
+	if timings == nil {
+		t = &DirectiveTimings{
+			Timeout: defaultTimout,
+			Delay:   defaultDelay,
+			Reties:  defaultRetries,
+		}
+	} else {
+		t = timings
+	}
+
+	j.Directives.DNSDirectives = &DNSDirectives{
+		ReverseLookup: reverse,
+		RepeatLookups: repeatReverse,
+		Timings:       t,
+	}
+
+	return j
+}
+
+func (j *Job) WithWHOISDirective(timings *DirectiveTimings) *Job {
+	var t *DirectiveTimings
+
+	if timings == nil {
+		t = &DirectiveTimings{
+			Timeout: defaultTimout,
+			Delay:   defaultDelay,
+			Reties:  defaultRetries,
+		}
+	} else {
+		t = timings
+	}
+
+	j.Directives.WhoISDirectives = &WhoISDirectives{
+		Timings: t,
 	}
 
 	return j
@@ -163,6 +206,37 @@ func (j *Job) GetFieldsFromJSON() error {
 	return nil
 }
 
+// GetSummary returns compact profiles for every scanned host in a job
+func (j *Job) GetSummary() JobSummary {
+	summary := JobSummary{
+		Profiles: make(map[string]*networkEntities.NetworkNodeProfile),
+	}
+
+	for _, s := range j.NodeScans {
+		uuid := fmt.Sprintf("%x-%x-%x-%x-%x",
+			s.NodeUUID.Bytes[0:4],
+			s.NodeUUID.Bytes[4:6],
+			s.NodeUUID.Bytes[6:8],
+			s.NodeUUID.Bytes[8:10],
+			s.NodeUUID.Bytes[10:16],
+		)
+
+		p, ok := summary.Profiles[uuid]
+		if ok {
+			summary.Profiles[uuid] = p.WithNodeScans([]networkEntities.NetworkNodeScan{s})
+		} else {
+			profile := networkEntities.
+				NewNetworkNodeProfile(s.Node.Identity, s.Node.TypeID, s.NodeUUID).
+				WithTimestamps(&s.Node.CreatedAt, &s.Node.UpdatedAt, s.Node.DiscoveredAt).
+				WithNodeScans([]networkEntities.NetworkNodeScan{s})
+
+			summary.Profiles[uuid] = profile
+		}
+	}
+
+	return summary
+}
+
 const defaultTimout = 5000
 const defaultDelay = 200
 const defaultRetries = 3
@@ -197,9 +271,19 @@ type JobCreateParams struct {
 
 	CreatedByUserID *uint64 `json:"CreatedByUserID"`
 
-	OpenSourceProviders []SupportedOSSProvider `json:"Providers,omitempty" binding:"dive,oneof=0 1 2 3 4 5 6"`
+	// OSINT parameters
+	OpenSourceProviders []SupportedOSSProvider `json:"Providers,omitempty" binding:"dive,oneof=0 1 2 3 4 5 6 7 8"`
 
+	// DNS parameters
+	ReverseLookup *bool   `json:"ReverseLookup,omitempty"`
+	RepeatLookups *uint64 `json:"RepeatLookups,omitempty"`
+
+	// timings
 	Delay   uint64 `json:"Delay,omitempty"`
 	Timout  uint64 `json:"Timout,omitempty"`
 	Retries uint64 `json:"Retries,omitempty"`
+}
+
+type JobSummary struct {
+	Profiles map[string]*networkEntities.NetworkNodeProfile `json:"Profiles"`
 }

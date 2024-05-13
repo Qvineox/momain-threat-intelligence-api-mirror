@@ -2,6 +2,7 @@ package networkEntities
 
 import (
 	"github.com/jackc/pgtype"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"time"
 )
@@ -15,13 +16,18 @@ type NetworkNode struct {
 	// Network node discovery timestamp, when was this node first found
 	DiscoveredAt *time.Time `json:"DiscoveredAt" gorm:"column:discovered_at"`
 
-	Type   *NetworkNodeType `json:"NodeType,omitempty" gorm:"foreignKey:TypeID;constraint:OnUpdate:CASCADE;OnDelete:SET NULL"`
+	Type   *NetworkNodeType `json:"NodeTypeID,omitempty" gorm:"foreignKey:TypeID;constraint:OnUpdate:CASCADE;OnDelete:SET NULL"`
 	TypeID uint64           `json:"NodeTypeId"`
 
 	Scans []NetworkNodeScan `json:"Scans" gorm:"foreignKey:NodeUUID"`
 
 	// Profile is used to represent all collected data on selected entity
 	Profile *NetworkNodeProfile `json:"Profile,omitempty" gorm:"-"`
+	Card    *NetworkNodeCard    `json:"Card,omitempty" gorm:"-"`
+
+	// Scoring contains all collected scores from different sources
+	Scoring     *NetworkNodeScoring                    `json:"Scoring,omitempty" gorm:"-"`
+	ScoringJSON datatypes.JSONType[NetworkNodeScoring] `json:"-" gorm:"column:latest_scoring"`
 
 	CreatedAt time.Time      `json:"CreatedAt"`
 	UpdatedAt time.Time      `json:"UpdatedAt"`

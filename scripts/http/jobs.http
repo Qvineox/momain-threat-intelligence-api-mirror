@@ -1,0 +1,68 @@
+### Create new domain OSINT job
+POST {{base_url}}/scanning/queue/job
+Accept: application/json
+Content-Type: application/json
+X-Api-Key: {{access_token}}
+
+{
+  "Delay": 2000,
+  "Exceptions": [],
+  "Priority": 1,
+  "Private": false,
+  "Providers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "Retries": 3,
+  "Targets": [
+    "91.210.229.44"
+  ],
+  "Timout": 5000,
+  "Type": 0,
+  "UseHomeBound": true,
+  "Weight": 200
+}
+
+### Create new IP OSINT job
+POST {{base_url}}/scanning/queue/job
+Accept: application/json
+Content-Type: application/json
+X-Api-Key: {{access_token}}
+
+{
+  "Delay": 2000,
+  "Exceptions": [],
+  "Priority": 1,
+  "Private": false,
+  "Providers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "Retries": 3,
+  "Targets": [
+    "91.210.229.44"
+  ],
+  "Timout": 5000,
+  "Type": 0,
+  "UseHomeBound": true,
+  "Weight": 200
+}
+
+### Get job data by UUID
+GET {{base_url}}/jobs/job/a51093e7-8dee-4851-8388-b73147e28a80
+Accept: application/json
+Content-Type: application/json
+X-Api-Key: {{access_token}}

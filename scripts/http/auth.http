@@ -1,0 +1,10 @@
+### Authentification
+POST {{base_url}}/auth/login
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "pass",
+  "username": "root"
+}
+

@@ -1,4 +1,4 @@
-package ossEntities
+package osintEntities
 
 // ShodanHostScanBody https://datapedia.shodan.io/
 type ShodanHostScanBody struct {

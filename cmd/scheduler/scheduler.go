@@ -24,8 +24,8 @@ type Scheduler struct {
 
 	pollingRateMS time.Duration
 
-	nodesRepo core.INetworkNodesRepo
-	jobsRepo  core.IJobsRepo
+	nodesService core.INetworkNodesService
+	jobsRepo     core.IJobsRepo
 
 	latestJobs []*jobEntities.Job
 
@@ -34,13 +34,13 @@ type Scheduler struct {
 	tlsCredentials credentials.TransportCredentials
 }
 
-func NewScheduler(q *jobEntities.Queue, ar core.IAgentsRepo, nr core.INetworkNodesRepo, jr core.IJobsRepo, pr time.Duration, useTLS bool) (*Scheduler, error) {
+func NewScheduler(q *jobEntities.Queue, ar core.IAgentsRepo, ns core.INetworkNodesService, jr core.IJobsRepo, pr time.Duration, useTLS bool) (*Scheduler, error) {
 	slog.Info("creating scheduler...")
 	sh := &Scheduler{
 		queue:         q,
 		pollingRateMS: pr,
 		quit:          make(chan bool),
-		nodesRepo:     nr,
+		nodesService:  ns,
 		jobsRepo:      jr,
 		latestJobs:    make([]*jobEntities.Job, 0),
 	}
@@ -162,7 +162,7 @@ func (s *Scheduler) AddOrUpdateDialer(agent agentEntities.ScanAgent) error {
 			_ = dialer.Connect(s.tlsCredentials)
 		}
 	} else {
-		dialer, err = dialers.NewAgentDialer(&agent, s.nodesRepo)
+		dialer, err = dialers.NewAgentDialer(&agent, s.nodesService)
 		if err != nil {
 			return err
 		}
@@ -210,7 +210,7 @@ func (s *Scheduler) ScheduleJob(job *jobEntities.Job) error {
 			job.Advance() // should move status to STARTING
 
 			go func() {
-				err := h.HandleOSSJob(job)
+				err := h.HandleJob(job)
 				if err != nil {
 					job.DoneWithError(err)
 				} else {

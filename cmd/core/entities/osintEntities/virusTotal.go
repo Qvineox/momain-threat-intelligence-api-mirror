@@ -1,4 +1,4 @@
-package ossEntities
+package osintEntities
 
 // VTIPScanBody https://developers.virustotal.com/reference/ip-object
 type VTIPScanBody struct {

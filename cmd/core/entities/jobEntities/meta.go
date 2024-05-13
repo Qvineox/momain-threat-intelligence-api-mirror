@@ -37,7 +37,7 @@ type JobStatus uint64
 type JobPriority uint64
 
 const (
-	JOB_TYPE_OSS JobType = iota
+	JOB_TYPE_OSINT JobType = iota
 	JOB_TYPE_NMAP
 	JOB_TYPE_WHOIS
 	JOB_TYPE_DNS

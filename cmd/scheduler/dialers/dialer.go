@@ -34,10 +34,10 @@ type ScanAgentDialer struct {
 
 	logger loggers.DialerLogger
 
-	repo core.INetworkNodesRepo
+	service core.INetworkNodesService
 }
 
-func NewAgentDialer(agent *agentEntities.ScanAgent, repo core.INetworkNodesRepo) (*ScanAgentDialer, error) {
+func NewAgentDialer(agent *agentEntities.ScanAgent, service core.INetworkNodesService) (*ScanAgentDialer, error) {
 	if agent == nil || agent.Host == "" {
 		return nil, errors.New("agent not available")
 	}
@@ -45,7 +45,7 @@ func NewAgentDialer(agent *agentEntities.ScanAgent, repo core.INetworkNodesRepo)
 	a := &ScanAgentDialer{
 		MinPriority: jobEntities.JobPriority(agent.MinPriority),
 		Agent:       agent,
-		repo:        repo,
+		service:     service,
 		IsBusy:      false,
 		logger:      loggers.NewDialerLogger(agent.UUID, agent.Name),
 	}
@@ -103,7 +103,7 @@ func (d *ScanAgentDialer) CanAcceptJobs() bool {
 	return d.Agent.IsActive && d.IsConnected()
 }
 
-func (d *ScanAgentDialer) HandleOSSJob(job *jobEntities.Job) error {
+func (d *ScanAgentDialer) HandleJob(job *jobEntities.Job) error {
 	if !d.IsConnected() {
 		err := errors.New("agent is not connected")
 		d.logger.JobAssignmentFailed(job.Meta.UUID, err)
@@ -127,7 +127,7 @@ func (d *ScanAgentDialer) HandleOSSJob(job *jobEntities.Job) error {
 		r := recover()
 
 		if r != nil {
-			slog.Error("dialer recovered with error: " + r.(string))
+			slog.Error("dialer recovered with error: " + fmt.Sprint(r))
 			job.Meta.Status = jobEntities.JOB_STATUS_PANIC
 		}
 
@@ -138,6 +138,19 @@ func (d *ScanAgentDialer) HandleOSSJob(job *jobEntities.Job) error {
 	}()
 
 	// switch job types
+	switch job.Meta.Type {
+	case jobEntities.JOB_TYPE_OSINT:
+		return d.handleOSINTStream(ctx, job)
+	case jobEntities.JOB_TYPE_DNS:
+		return d.handleDNSStream(ctx, job)
+	case jobEntities.JOB_TYPE_WHOIS:
+		return d.handleWHOISStream(ctx, job)
+	default:
+		return errors.New("unimplemented job type")
+	}
+}
+
+func (d *ScanAgentDialer) handleOSINTStream(ctx context.Context, job *jobEntities.Job) error {
 	stream, err := d.jobsClient.StartOSS(ctx, job.ToProto())
 	if err != nil {
 		d.CurrentJob.DoneWithError(err)
@@ -148,7 +161,7 @@ func (d *ScanAgentDialer) HandleOSSJob(job *jobEntities.Job) error {
 
 	// starting oss audit reports handling
 	ch := make(chan *protoServices.TargetAuditReport, 1000)
-	handler := NewOSSJobHandler(d.Agent, job, d.repo, ch)
+	handler := NewJobHandler(d.Agent, job, d.service, ch)
 	wg := &sync.WaitGroup{}
 
 	go handler.Start(ctx, wg)
@@ -185,7 +198,113 @@ func (d *ScanAgentDialer) HandleOSSJob(job *jobEntities.Job) error {
 
 	wg.Wait()
 	d.logger.JobFinished(job.Meta.UUID)
-	d.CurrentJob.Advance() // // should move status to FINISHING
+	d.CurrentJob.Advance() // should move status to FINISHING
+
+	return nil
+}
+
+func (d *ScanAgentDialer) handleDNSStream(ctx context.Context, job *jobEntities.Job) error {
+	stream, err := d.jobsClient.StartDNS(ctx, job.ToProto())
+	if err != nil {
+		d.CurrentJob.DoneWithError(err)
+		return err
+	}
+
+	d.logger.JobAssigned(job.Meta.UUID)
+
+	// starting oss audit reports handling
+	ch := make(chan *protoServices.TargetAuditReport, 1000)
+	handler := NewJobHandler(d.Agent, job, d.service, ch)
+	wg := &sync.WaitGroup{}
+
+	go handler.Start(ctx, wg)
+
+	d.CurrentJob.Advance() // should move status to WORKING
+
+	for {
+		var r *protoServices.TargetAuditReport
+
+		if d.CurrentJob.Meta.Status == jobEntities.JOB_STATUS_CANCELLED {
+			d.logger.JobCancel(job.Meta.UUID)
+			break
+		}
+
+		r, err = stream.Recv()
+		if err == io.EOF {
+			close(ch)
+			break
+		} else if err != nil {
+			d.logger.MessageError(job.Meta.UUID, err)
+		}
+
+		if r == nil {
+			d.logger.MessageError(job.Meta.UUID, errors.New("received empty response"))
+			job.Meta.Status = jobEntities.JOB_STATUS_ERROR
+			break
+		}
+
+		wg.Add(1)
+		d.CurrentJob.Meta.TasksLeft = r.TasksLeft
+
+		ch <- r
+	}
+
+	wg.Wait()
+	d.logger.JobFinished(job.Meta.UUID)
+	d.CurrentJob.Advance() // should move status to FINISHING
+
+	return nil
+}
+
+func (d *ScanAgentDialer) handleWHOISStream(ctx context.Context, job *jobEntities.Job) error {
+	stream, err := d.jobsClient.StartWHOIS(ctx, job.ToProto())
+	if err != nil {
+		d.CurrentJob.DoneWithError(err)
+		return err
+	}
+
+	d.logger.JobAssigned(job.Meta.UUID)
+
+	// starting oss audit reports handling
+	ch := make(chan *protoServices.TargetAuditReport, 1000)
+	handler := NewJobHandler(d.Agent, job, d.service, ch)
+	wg := &sync.WaitGroup{}
+
+	go handler.Start(ctx, wg)
+
+	d.CurrentJob.Advance() // should move status to WORKING
+
+	for {
+		var r *protoServices.TargetAuditReport
+
+		if d.CurrentJob.Meta.Status == jobEntities.JOB_STATUS_CANCELLED {
+			d.logger.JobCancel(job.Meta.UUID)
+			break
+		}
+
+		r, err = stream.Recv()
+		if err == io.EOF {
+			close(ch)
+			break
+		} else if err != nil {
+			d.logger.MessageError(job.Meta.UUID, err)
+		}
+
+		if r == nil {
+			d.logger.MessageError(job.Meta.UUID, errors.New("received empty response"))
+			job.Meta.Status = jobEntities.JOB_STATUS_ERROR
+			break
+		}
+
+		wg.Add(1)
+		d.CurrentJob.Meta.TasksLeft = r.TasksLeft
+
+		ch <- r
+	}
+
+	wg.Wait()
+	d.logger.JobFinished(job.Meta.UUID)
+	d.CurrentJob.Advance() // should move status to FINISHING
 
 	return nil
 }

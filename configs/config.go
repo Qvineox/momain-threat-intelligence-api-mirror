@@ -32,6 +32,11 @@ type StaticConfig struct {
 		UseTLS        bool   `env:"scheduling_tls" json:"use_tls"`
 	} `json:"scheduling"`
 
+	Analyzer struct {
+		Host string `env-required:"true" env:"analyzer_host" json:"host"`
+		Port uint64 `env-required:"true" env:"analyzer_port" json:"port"`
+	} `json:"analyzer"`
+
 	WebServer struct {
 		Host string `env-required:"true" env:"http_host" json:"host"`
 		Port uint64 `env-required:"true" env:"http_port" json:"port"`

@@ -1,4 +1,4 @@
-package ossEntities
+package osintEntities
 
 import (
 	"time"

@@ -97,4 +97,5 @@ type Services struct {
 	QueueService        core.IQueueService
 	AgentsService       core.IAgentsService
 	NetworkNodesService core.INetworkNodesService
+	ScoringService      core.IScoringService
 }
