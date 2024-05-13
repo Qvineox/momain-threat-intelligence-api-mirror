@@ -29,7 +29,7 @@ func (n NodesServiceImpl) RetrieveNetworkNodeByUUID(uuid pgtype.UUID) (networkEn
 		return networkEntities.NetworkNode{}, nil
 	}
 
-	node.Profile = networkEntities.NewNetworkNodeProfile(node.Identity, node.TypeID)
+	node.Profile = networkEntities.NewNetworkNodeProfile(node.Identity, node.TypeID, node.UUID)
 
 	// checking is node identity in blacklists
 	blacklists, err := n.blacklists.RetrieveHostsByFilter(blacklistEntities.BlacklistSearchFilter{
@@ -44,12 +44,36 @@ func (n NodesServiceImpl) RetrieveNetworkNodeByUUID(uuid pgtype.UUID) (networkEn
 	}
 
 	node.Profile = node.Profile.WithNodeScans(node.Scans)
+	node.Card = networkEntities.NewNetworkNodeCardFromProfile(node.Profile)
 
 	return node, nil
 }
 
 func (n NodesServiceImpl) RetrieveNetworkNodesByFilter(filter networkEntities.NetworkNodeSearchFilter) ([]networkEntities.NetworkNode, error) {
-	return n.nodesRepo.SelectNetworkNodesByFilter(filter)
+	if !filter.LoadScans { // can't load profile and card without scans
+		filter.LoadProfiles = false
+	}
+
+	nodes, err := n.nodesRepo.SelectNetworkNodesByFilter(filter)
+	if err != nil {
+		return []networkEntities.NetworkNode{}, err
+	}
+
+	if filter.LoadProfiles {
+		for i, node := range nodes {
+			node.Profile = networkEntities.NewNetworkNodeProfile(node.Identity, node.TypeID, node.UUID)
+
+			node.Profile = node.Profile.
+				WithNodeScans(node.Scans).
+				WithTimestamps(&node.CreatedAt, &node.UpdatedAt, node.DiscoveredAt)
+
+			node.Card = networkEntities.NewNetworkNodeCardFromProfile(node.Profile)
+
+			nodes[i] = node
+		}
+	}
+
+	return nodes, nil
 }
 
 func (n NodesServiceImpl) SaveNetworkNode(node networkEntities.NetworkNode) (networkEntities.NetworkNode, error) {

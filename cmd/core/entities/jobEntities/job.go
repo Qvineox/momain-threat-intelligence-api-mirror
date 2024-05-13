@@ -226,7 +226,8 @@ func (j *Job) GetSummary() JobSummary {
 			summary.Profiles[uuid] = p.WithNodeScans([]networkEntities.NetworkNodeScan{s})
 		} else {
 			profile := networkEntities.
-				NewNetworkNodeProfile(s.Node.Identity, s.Node.TypeID).
+				NewNetworkNodeProfile(s.Node.Identity, s.Node.TypeID, s.NodeUUID).
+				WithTimestamps(&s.Node.CreatedAt, &s.Node.UpdatedAt, s.Node.DiscoveredAt).
 				WithNodeScans([]networkEntities.NetworkNodeScan{s})
 
 			summary.Profiles[uuid] = profile

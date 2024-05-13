@@ -64,6 +64,10 @@ func (r NetworkNodesRepoImpl) SelectNetworkNodesByFilter(filter networkEntities.
 		query = query.Limit(filter.Limit)
 	}
 
+	if filter.LoadScans {
+		query = query.Preload("Scans")
+	}
+
 	nodes := make([]networkEntities.NetworkNode, 0)
 	err := query.Offset(filter.Offset).Order("created_at DESC, updated_at DESC, UUID DESC").Find(&nodes).Error
 

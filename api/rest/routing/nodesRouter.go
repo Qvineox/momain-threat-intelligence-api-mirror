@@ -48,23 +48,25 @@ func NewNodesRouter(service core.INetworkNodesService, path *gin.RouterGroup, au
 
 // GetNodesByFilter accepts filters and returns network nodes
 //
-// @Summary            Returns network nodes by filter
-// @Description        Accepts filters and returns network nodes
-// @Tags               Nodes
-// @Security           ApiKeyAuth
-// @Router             /nodes/nodes [get]
-// @ProduceAccessToken json
-// @Param              type_id[]                      query  []uint64 false "Node type IDs" collectionFormat(multi)
-// @Param              discovered_after  query string        false    "Discovery timestamp is after"
-// @Param              discovered_before query string        false    "Discovery timestamp is before"
-// @Param              created_after           query  string          false "Created timestamp is after"
-// @Param              created_before          query  string          false "Created timestamp is before"
-// @Param              search_string           query  string          false "Substring to search"
-// @Param              limit                                 query    int     true  "Query limit"
-// @Param              offset                                query    int     false "Query offset"
-// @ProduceAccessToken application/csv
-// @Success            200              {file}  file
-// @Failure            401,400 {object} apiErrors.APIError
+//	@Summary			Returns network nodes by filter
+//	@Description		Accepts filters and returns network nodes
+//	@Tags				Nodes
+//	@Security			ApiKeyAuth
+//	@Router				/nodes/nodes [get]
+//	@ProduceAccessToken	json
+//	@Param				type_id[]			query	[]uint64	false	"Node type IDs"	collectionFormat(multi)
+//	@Param				discovered_after	query	string		false	"Discovery timestamp is after"
+//	@Param				discovered_before	query	string		false	"Discovery timestamp is before"
+//	@Param				created_after		query	string		false	"Created timestamp is after"
+//	@Param				created_before		query	string		false	"Created timestamp is before"
+//	@Param				search_string		query	string		false	"Substring to search"
+//	@Param				limit				query	int			true	"Query limit"
+//	@Param				offset				query	int			false	"Query offset"
+//	@Param				load_scans			query	bool		false	"Load related scans"
+//	@Param				load_profiles		query	bool		false	"Generate profiles and cards"
+//	@ProduceAccessToken	application/csv
+//	@Success			200		{file}		file
+//	@Failure			401,400	{object}	apiErrors.APIError
 func (r *NodesRouter) GetNodesByFilter(c *gin.Context) {
 	params := networkEntities.NetworkNodeSearchFilter{}
 
@@ -95,15 +97,15 @@ func (r *NodesRouter) GetNodesByFilter(c *gin.Context) {
 
 // GetNodeByUUID accepts UUID and returns saved NetworkNode
 //
-// @Summary            Get single node by UUID
-// @Description        Returns single node
-// @Tags               Nodes
-// @Security           ApiKeyAuth
-// @Router             /nodes/node/{node_uuid} [get]
-// @ProduceAccessToken json
-// @Param              node_uuid   path      string   true "Node UUID"
-// @Success            200                   {object} networkEntities.NetworkNode
-// @Failure            404,401,400 {object} apiErrors.APIError
+//	@Summary			Get single node by UUID
+//	@Description		Returns single node
+//	@Tags				Nodes
+//	@Security			ApiKeyAuth
+//	@Router				/nodes/node/{node_uuid} [get]
+//	@ProduceAccessToken	json
+//	@Param				node_uuid	path		string	true	"Node UUID"
+//	@Success			200			{object}	networkEntities.NetworkNode
+//	@Failure			404,401,400	{object}	apiErrors.APIError
 func (r *NodesRouter) GetNodeByUUID(c *gin.Context) {
 	uuidParam := c.Param("node_uuid")
 	if len(uuidParam) == 0 {
@@ -131,15 +133,15 @@ func (r *NodesRouter) GetNodeByUUID(c *gin.Context) {
 
 // EvaluateNodeByUUID accepts UUID, evaluates and returns node scoring
 //
-// @Summary            Evaluate node scoring by UUID
-// @Description        Evaluates scoring and returns it
-// @Tags               Nodes
-// @Security           ApiKeyAuth
-// @Router             /nodes/evaluate/{node_uuid} [post]
-// @ProduceAccessToken json
-// @Param              node_uuid   path      string   true "Node UUID"
-// @Success            200                   {object} networkEntities.NetworkNodeScoring
-// @Failure            404,401,400 {object} apiErrors.APIError
+//	@Summary			Evaluate node scoring by UUID
+//	@Description		Evaluates scoring and returns it
+//	@Tags				Nodes
+//	@Security			ApiKeyAuth
+//	@Router				/nodes/evaluate/{node_uuid} [post]
+//	@ProduceAccessToken	json
+//	@Param				node_uuid	path		string	true	"Node UUID"
+//	@Success			200			{object}	networkEntities.NetworkNodeScoring
+//	@Failure			404,401,400	{object}	apiErrors.APIError
 func (r *NodesRouter) EvaluateNodeByUUID(c *gin.Context) {
 	uuidParam := c.Param("node_uuid")
 	if len(uuidParam) == 0 {

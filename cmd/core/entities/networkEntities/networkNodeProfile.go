@@ -6,6 +6,7 @@ import (
 	"domain_threat_intelligence_api/cmd/core/entities/whoisEntities"
 	"encoding/json"
 	"fmt"
+	"github.com/jackc/pgtype"
 	"log/slog"
 	"slices"
 	"strconv"
@@ -15,8 +16,9 @@ import (
 
 // NetworkNodeProfile represents single compiled report about network node
 type NetworkNodeProfile struct {
-	Identity   string `json:"Identity"`
-	NodeTypeID uint64 `json:"NodeTypeID"`
+	Identity   string      `json:"Identity"`
+	NodeTypeID uint64      `json:"NodeTypeID"`
+	NodeUUID   pgtype.UUID `json:"NodeUUID"`
 
 	// owner identity data
 	ASN          []scanIntValue    `json:"ASN"`
@@ -61,7 +63,7 @@ type NetworkNodeProfile struct {
 	ProviderScore []scanIntValue `json:"ProviderScore"`
 
 	// internal scoring (ml analytics)
-	Scoring NetworkNodeScoring `json:"Scoring"`
+	Scoring *NetworkNodeScoring `json:"Scoring"`
 
 	// anonymity tools usage
 	IsVPN     []scanBoolValue `json:"IsVPN"`
@@ -110,6 +112,11 @@ type NetworkNodeProfile struct {
 
 	// latest scanning data
 	LatestScans []latestScan `json:"LatestScans"`
+
+	// node timestamps
+	CreatedAt    *time.Time `json:"CreatedAt"`
+	UpdatedAt    *time.Time `json:"UpdatedAt"`
+	DiscoveredAt *time.Time `json:"DiscoveredAt"`
 }
 
 type latestScan struct {
@@ -174,11 +181,12 @@ type CommonScanTag struct {
 	Timestamp time.Time      `json:"Timestamp"`
 }
 
-func NewNetworkNodeProfile(identity string, nodeTypeID uint64) *NetworkNodeProfile {
+func NewNetworkNodeProfile(identity string, nodeTypeID uint64, nodeUUID pgtype.UUID) *NetworkNodeProfile {
 	profile := &NetworkNodeProfile{}
 	profile.OpenPorts = make(map[uint64]portData)
 
 	profile.Identity = identity
+	profile.NodeUUID = nodeUUID
 	profile.NodeTypeID = nodeTypeID
 
 	return profile
@@ -186,6 +194,14 @@ func NewNetworkNodeProfile(identity string, nodeTypeID uint64) *NetworkNodeProfi
 
 func (p *NetworkNodeProfile) WithBlacklisted(isBlacklisted bool) *NetworkNodeProfile {
 	p.IsBlacklisted = isBlacklisted
+	return p
+}
+
+func (p *NetworkNodeProfile) WithTimestamps(createdAt, updatedAt, discoveredAt *time.Time) *NetworkNodeProfile {
+	p.CreatedAt = createdAt
+	p.UpdatedAt = updatedAt
+	p.DiscoveredAt = discoveredAt
+
 	return p
 }
 
