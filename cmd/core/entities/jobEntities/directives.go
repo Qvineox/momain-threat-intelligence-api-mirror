@@ -28,6 +28,9 @@ type WhoISDirectives struct {
 }
 
 type DNSDirectives struct {
+	ReverseLookup bool   `json:"ReverseLookup"`
+	RepeatLookups uint64 `json:"RepeatLookups"`
+
 	Timings *DirectiveTimings `json:"Timings"`
 }
 
@@ -88,7 +91,17 @@ func (d *Directives) ToProto() *protoServices.Directives {
 		pd.Oss.Timings = d.OpenSourceScanDirectives.Timings.ToProto()
 	}
 
-	// TODO: add other Directives
+	if d.DNSDirectives != nil {
+		pd.Dns = &protoServices.DNSDirectives{
+			ReverseLookup: d.DNSDirectives.ReverseLookup,
+			RepeatLookups: &d.DNSDirectives.RepeatLookups,
+			Timings:       d.DNSDirectives.Timings.ToProto(),
+		}
+	}
+
+	if d.WhoISDirectives != nil {
+		pd.Whois = &protoServices.WhoIsDirectives{Timings: d.WhoISDirectives.Timings.ToProto()}
+	}
 
 	return &pd
 }

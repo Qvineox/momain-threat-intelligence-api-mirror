@@ -14,7 +14,7 @@ import (
 )
 
 type JobHandler struct {
-	repo core.INetworkNodesRepo
+	service core.INetworkNodesService
 
 	scans chan *protoServices.TargetAuditReport
 
@@ -22,8 +22,8 @@ type JobHandler struct {
 	job   *jobEntities.Job
 }
 
-func NewJobHandler(a *agentEntities.ScanAgent, j *jobEntities.Job, r core.INetworkNodesRepo, ch chan *protoServices.TargetAuditReport) JobHandler {
-	return JobHandler{agent: a, job: j, repo: r, scans: ch}
+func NewJobHandler(a *agentEntities.ScanAgent, j *jobEntities.Job, n core.INetworkNodesService, ch chan *protoServices.TargetAuditReport) JobHandler {
+	return JobHandler{agent: a, job: j, service: n, scans: ch}
 }
 
 func (h *JobHandler) Start(ctx context.Context, wg *sync.WaitGroup) {
@@ -39,30 +39,31 @@ loop:
 				continue
 			}
 
-			routines[networkEntities.ScanType(msg.GetScanType())/100].input <- msg
+			routineIndex := msg.GetScanType() / 100
+			routines[routineIndex].input <- msg
 
-			//switch networkEntities.ScanType(msg.GetScanType()) / 100 {
-			//case 1:
+			// switch networkEntities.ScanType(msg.GetScanType()) / 100 {
+			// case 1:
 			//	routines[0].input <- msg
-			//case 2:
+			// case 2:
 			//	routines[1].input <- msg
-			//case 3:
+			// case 3:
 			//	routines[2].input <- msg
-			//case 4:
+			// case 4:
 			//	routines[3].input <- msg
-			//case 5:
+			// case 5:
 			//	routines[4].input <- msg
-			//case 6:
+			// case 6:
 			//	routines[5].input <- msg
-			//case 7:
+			// case 7:
 			//	routines[6].input <- msg
-			//case 11:
+			// case 11:
 			//	routines[11].input <- msg
-			//case 12:
+			// case 12:
 			//	routines[12].input <- msg
-			//default:
+			// default:
 			//	slog.Warn("unsupported scan type message received")
-			//}
+			// }
 		}
 	}
 
@@ -74,11 +75,11 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 
 	switch h.job.Meta.Type {
 	case jobEntities.JOB_TYPE_OSINT:
-		for i := 0; i < 8; i++ {
+		for i := 0; i < 9; i++ {
 			ch := make(chan *protoServices.TargetAuditReport, 100)
 
 			routines[i] = handlerRoutine{
-				repo:      h.repo,          // repo to save records to database
+				service:   h.service,       // service to save records to database
 				input:     ch,              // passing audit reports from agent
 				wg:        wg,              // required to wait for all transactions to end
 				ctx:       ctx,             // passing context to finish underlying routines
@@ -94,7 +95,7 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 		ch := make(chan *protoServices.TargetAuditReport, 100)
 
 		routines[11] = handlerRoutine{
-			repo:      h.repo,
+			service:   h.service,
 			input:     ch,
 			wg:        wg,
 			ctx:       ctx,
@@ -109,7 +110,7 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 		ch := make(chan *protoServices.TargetAuditReport, 100)
 
 		routines[12] = handlerRoutine{
-			repo:      h.repo,
+			service:   h.service,
 			input:     ch,
 			wg:        wg,
 			ctx:       ctx,
@@ -128,7 +129,8 @@ func (h *JobHandler) createStartRoutines(ctx context.Context, wg *sync.WaitGroup
 }
 
 type handlerRoutine struct {
-	repo  core.INetworkNodesRepo
+	service core.INetworkNodesService
+
 	input chan *protoServices.TargetAuditReport
 	wg    *sync.WaitGroup
 	ctx   context.Context
@@ -165,13 +167,13 @@ func (r *handlerRoutine) start() {
 				Type: jobEntities.TargetType(t.Type),
 			}
 
-			err = r.repo.CreateNetworkNodeWithIdentity(scan, target)
+			_, err = r.service.SaveNetworkNodeWithIdentity(scan, target)
 		} else {
 			c, _ := json.Marshal(errorScanData{
 				ErrorMessage: string(msg.Content),
 			})
 
-			err = r.repo.CreateNetworkNodeWithIdentity(networkEntities.NetworkNodeScan{
+			_, err = r.service.SaveNetworkNodeWithIdentity(networkEntities.NetworkNodeScan{
 				IsComplete: false,
 				JobUUID:    r.jobUUID,
 				ScanTypeID: uint64(msg.GetScanType()),

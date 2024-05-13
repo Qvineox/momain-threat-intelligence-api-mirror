@@ -34,10 +34,10 @@ type ScanAgentDialer struct {
 
 	logger loggers.DialerLogger
 
-	repo core.INetworkNodesRepo
+	service core.INetworkNodesService
 }
 
-func NewAgentDialer(agent *agentEntities.ScanAgent, repo core.INetworkNodesRepo) (*ScanAgentDialer, error) {
+func NewAgentDialer(agent *agentEntities.ScanAgent, service core.INetworkNodesService) (*ScanAgentDialer, error) {
 	if agent == nil || agent.Host == "" {
 		return nil, errors.New("agent not available")
 	}
@@ -45,7 +45,7 @@ func NewAgentDialer(agent *agentEntities.ScanAgent, repo core.INetworkNodesRepo)
 	a := &ScanAgentDialer{
 		MinPriority: jobEntities.JobPriority(agent.MinPriority),
 		Agent:       agent,
-		repo:        repo,
+		service:     service,
 		IsBusy:      false,
 		logger:      loggers.NewDialerLogger(agent.UUID, agent.Name),
 	}
@@ -127,7 +127,7 @@ func (d *ScanAgentDialer) HandleJob(job *jobEntities.Job) error {
 		r := recover()
 
 		if r != nil {
-			slog.Error("dialer recovered with error: " + r.(string))
+			slog.Error("dialer recovered with error: " + fmt.Sprint(r))
 			job.Meta.Status = jobEntities.JOB_STATUS_PANIC
 		}
 
@@ -161,7 +161,7 @@ func (d *ScanAgentDialer) handleOSINTStream(ctx context.Context, job *jobEntitie
 
 	// starting oss audit reports handling
 	ch := make(chan *protoServices.TargetAuditReport, 1000)
-	handler := NewJobHandler(d.Agent, job, d.repo, ch)
+	handler := NewJobHandler(d.Agent, job, d.service, ch)
 	wg := &sync.WaitGroup{}
 
 	go handler.Start(ctx, wg)
@@ -214,7 +214,7 @@ func (d *ScanAgentDialer) handleDNSStream(ctx context.Context, job *jobEntities.
 
 	// starting oss audit reports handling
 	ch := make(chan *protoServices.TargetAuditReport, 1000)
-	handler := NewJobHandler(d.Agent, job, d.repo, ch)
+	handler := NewJobHandler(d.Agent, job, d.service, ch)
 	wg := &sync.WaitGroup{}
 
 	go handler.Start(ctx, wg)
@@ -267,7 +267,7 @@ func (d *ScanAgentDialer) handleWHOISStream(ctx context.Context, job *jobEntitie
 
 	// starting oss audit reports handling
 	ch := make(chan *protoServices.TargetAuditReport, 1000)
-	handler := NewJobHandler(d.Agent, job, d.repo, ch)
+	handler := NewJobHandler(d.Agent, job, d.service, ch)
 	wg := &sync.WaitGroup{}
 
 	go handler.Start(ctx, wg)

@@ -221,8 +221,8 @@ enum ScanType {
   SCAN_TYPE_DNS_REVERSE_LOOKUP = 1102;
 
   // whois
-  SCAN_TYPE_WHOIS_IP = 2101;
-  SCAN_TYPE_WHOIS_DOMAIN = 2102;
+  SCAN_TYPE_WHOIS_IP = 1201;
+  SCAN_TYPE_WHOIS_DOMAIN = 1202;
 }
 
 // TargetAuditReport is used to represent Task return values. Task type and other data should be added to header.

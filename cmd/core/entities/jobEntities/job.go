@@ -67,6 +67,48 @@ func (j *Job) WithOSSDirective(providers []SupportedOSSProvider, timings *Direct
 	return j
 }
 
+func (j *Job) WithDNSDirective(reverse bool, repeatReverse uint64, timings *DirectiveTimings) *Job {
+	var t *DirectiveTimings
+
+	if timings == nil {
+		t = &DirectiveTimings{
+			Timeout: defaultTimout,
+			Delay:   defaultDelay,
+			Reties:  defaultRetries,
+		}
+	} else {
+		t = timings
+	}
+
+	j.Directives.DNSDirectives = &DNSDirectives{
+		ReverseLookup: reverse,
+		RepeatLookups: repeatReverse,
+		Timings:       t,
+	}
+
+	return j
+}
+
+func (j *Job) WithWHOISDirective(timings *DirectiveTimings) *Job {
+	var t *DirectiveTimings
+
+	if timings == nil {
+		t = &DirectiveTimings{
+			Timeout: defaultTimout,
+			Delay:   defaultDelay,
+			Reties:  defaultRetries,
+		}
+	} else {
+		t = timings
+	}
+
+	j.Directives.WhoISDirectives = &WhoISDirectives{
+		Timings: t,
+	}
+
+	return j
+}
+
 func (j *Job) WithDiscoveryDirective(timings *DirectiveTimings) *Job {
 	var t *DirectiveTimings
 
@@ -228,8 +270,14 @@ type JobCreateParams struct {
 
 	CreatedByUserID *uint64 `json:"CreatedByUserID"`
 
+	// OSINT parameters
 	OpenSourceProviders []SupportedOSSProvider `json:"Providers,omitempty" binding:"dive,oneof=0 1 2 3 4 5 6 7 8"`
 
+	// DNS parameters
+	ReverseLookup *bool   `json:"ReverseLookup,omitempty"`
+	RepeatLookups *uint64 `json:"RepeatLookups,omitempty"`
+
+	// timings
 	Delay   uint64 `json:"Delay,omitempty"`
 	Timout  uint64 `json:"Timout,omitempty"`
 	Retries uint64 `json:"Retries,omitempty"`
