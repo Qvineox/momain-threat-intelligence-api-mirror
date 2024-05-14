@@ -2169,7 +2169,7 @@ const docTemplate = `{
                 "summary": "Enqueue scanning job",
                 "parameters": [
                     {
-                        "description": "New job to queue",
+                        "description": "Affected job to queue",
                         "name": "job",
                         "in": "body",
                         "required": true,

@@ -60,7 +60,7 @@ func NewQueueRouter(service core.IQueueService, path *gin.RouterGroup, auth *aut
 //	@Security			ApiKeyAuth
 //	@Router				/scanning/queue/job [post]
 //	@ProduceAccessToken	json
-//	@Param				job		body		jobEntities.JobCreateParams	true	"New job to queue"
+//	@Param				job		body		jobEntities.JobCreateParams	true	"Affected job to queue"
 //	@Success			201		{object}	queuedJob
 //	@Failure			401,400	{object}	apiErrors.APIError
 func (r *QueueRouter) PostQueueJob(c *gin.Context) {

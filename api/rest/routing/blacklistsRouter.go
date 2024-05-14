@@ -723,6 +723,7 @@ func (r *BlacklistsRouter) PostImportBlacklistsFromCSVFile(c *gin.Context) {
 	}
 
 	var event blacklistEntities.BlacklistImportEvent
+	var lines = make([][]string, 0)
 
 	for _, f := range files {
 		switch filepath.Ext(f.Filename) {
@@ -740,14 +741,16 @@ func (r *BlacklistsRouter) PostImportBlacklistsFromCSVFile(c *gin.Context) {
 				return
 			}
 
-			event, err = r.service.ImportFromCSV(data, discoveredAt, extractAll)
-			if err != nil {
-				apiErrors.FileProcessingErrorResponse(c, err)
-			}
+			lines = append(lines, data...)
 		default:
 			apiErrors.FileExtensionNotSupportedErrorResponse(c, errors.New("file extension not supported"))
 			return
 		}
+	}
+
+	event, err = r.service.ImportFromCSV(lines, discoveredAt, extractAll)
+	if err != nil {
+		apiErrors.FileProcessingErrorResponse(c, err)
 	}
 
 	go r.recountStatistics()

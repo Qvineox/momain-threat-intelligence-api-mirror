@@ -29,22 +29,22 @@ const (
 // DefaultNetworkNodeTypes has equal IDs to jobEntities.TargetType
 var DefaultNetworkNodeTypes = []NetworkNodeType{
 	{
-		ID:          uint64(NETWORK_NODE_TYPE_IP),
+		ID:          1,
 		Name:        "CIDR/IP",
 		Description: "IP address",
 	},
 	{
-		ID:          uint64(NETWORK_NODE_TYPE_DOMAIN),
+		ID:          2,
 		Name:        "Domain",
 		Description: "Internet Domain",
 	},
 	{
-		ID:          uint64(NETWORK_NODE_TYPE_EMAIL),
+		ID:          3,
 		Name:        "EMail",
 		Description: "Email address",
 	},
 	{
-		ID:          uint64(NETWORK_NODE_TYPE_URL),
+		ID:          4,
 		Name:        "URL",
 		Description: "URL address",
 	},

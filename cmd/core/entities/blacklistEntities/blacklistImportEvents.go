@@ -30,6 +30,15 @@ type BlacklistImportEventSummary struct {
 		Domains int64 `json:"Domains"`
 		Emails  int64 `json:"Emails"`
 	} `json:"Imported"`
+
+	Affected struct {
+		Total   int64 `json:"Total"`
+		IPs     int64 `json:"IPs"`
+		URLs    int64 `json:"URLs"`
+		Domains int64 `json:"Domains"`
+		Emails  int64 `json:"Emails"`
+	} `json:"Affected"`
+
 	New struct {
 		Total   int64 `json:"Total"`
 		IPs     int64 `json:"IPs"`
@@ -37,6 +46,7 @@ type BlacklistImportEventSummary struct {
 		Domains int64 `json:"Domains"`
 		Emails  int64 `json:"Emails"`
 	} `json:"New"`
+
 	Skipped int64 `json:"Skipped"`
 	Errored int   `json:"Errored"`
 }

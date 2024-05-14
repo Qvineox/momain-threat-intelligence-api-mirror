@@ -167,6 +167,12 @@ func (s *BlackListsServiceImpl) ImportFromSTIX2(bundles []blacklistEntities.STIX
 		}
 	}
 
+	summary.Imported.IPs += int64(len(ipMap))
+	summary.Imported.Domains += int64(len(domainMap))
+	summary.Imported.URLs += int64(len(urlMap))
+	summary.Imported.Emails += int64(len(emailMap))
+	summary.Imported.Total += summary.Imported.IPs + summary.Imported.Domains + summary.Imported.URLs + summary.Imported.Emails
+
 	// async saving of all host types
 	// 1. insert all imported records with clause
 	wg := sync.WaitGroup{}
@@ -184,7 +190,7 @@ func (s *BlackListsServiceImpl) ImportFromSTIX2(bundles []blacklistEntities.STIX
 			slog.Warn("failed to save IP addresses: " + err.Error())
 			summary.Errored += len(ips)
 		} else {
-			summary.Imported.IPs += rows
+			summary.Affected.IPs += rows
 		}
 
 		wg.Done()
@@ -202,7 +208,7 @@ func (s *BlackListsServiceImpl) ImportFromSTIX2(bundles []blacklistEntities.STIX
 			slog.Warn("failed to save URLs: " + err.Error())
 			summary.Errored += len(urls)
 		} else {
-			summary.Imported.URLs += rows
+			summary.Affected.URLs += rows
 		}
 
 		wg.Done()
@@ -220,7 +226,7 @@ func (s *BlackListsServiceImpl) ImportFromSTIX2(bundles []blacklistEntities.STIX
 			slog.Warn("failed to save domains: " + err.Error())
 			summary.Errored += len(domains)
 		} else {
-			summary.Imported.Domains += rows
+			summary.Affected.Domains += rows
 		}
 
 		wg.Done()
@@ -238,18 +244,17 @@ func (s *BlackListsServiceImpl) ImportFromSTIX2(bundles []blacklistEntities.STIX
 			slog.Warn("failed to save emails: " + err.Error())
 			summary.Errored += len(emails)
 		} else {
-			summary.Imported.Emails += rows
+			summary.Affected.Emails += rows
 		}
 
 		wg.Done()
 	}()
 
 	wg.Wait()
+	summary.Affected.Total = summary.Affected.IPs + summary.Affected.Domains + summary.Affected.URLs + summary.Affected.Emails
 
-	// 2. select all inserted records with event ID
-	summary.Imported.Total = summary.Imported.IPs + summary.Imported.Domains + summary.Imported.URLs + summary.Imported.Emails
 	hosts, err := s.RetrieveHostsByFilter(blacklistEntities.BlacklistSearchFilter{
-		Limit:         int(summary.Imported.Total),
+		Limit:         int(summary.Imported.Total) * 2,
 		ImportEventID: event.ID,
 	})
 
@@ -270,8 +275,6 @@ func (s *BlackListsServiceImpl) ImportFromSTIX2(bundles []blacklistEntities.STIX
 			summary.New.Emails++
 		}
 	}
-
-	summary.New.Total = summary.New.IPs + summary.New.Domains + summary.New.URLs + summary.New.Emails
 
 	// saving import event updates
 	event.Summary = datatypes.NewJSONType(summary)
@@ -408,39 +411,43 @@ func (s *BlackListsServiceImpl) ImportFromCSV(data [][]string, discoveredAt time
 				DiscoveredAt:  discoveryDate,
 			}
 
+			if !strings.Contains(urlMap[value].URL, "http") {
+				urlMap[value].URL = "//" + value
+			}
+
 			if !extractAll {
 				break
 			}
 
-			// find IP address in URL or extract domain name
-			p := blacklistEntities.ExtractIPFromPattern(value)
-			if len(p) > 0 {
-				ip := pgtype.Inet{}
-				err = ip.Set(p)
-				if err == nil {
-					ipMap[ip.IPNet.String()] = &blacklistEntities.BlacklistedIP{
-						IPAddress:     ip,
-						Description:   comment,
-						SourceID:      source,
-						ImportEventID: &event.ID,
-						DiscoveredAt:  discoveryDate,
-					}
-				}
-			} else {
-				d := value
-				if !strings.Contains(value, "http") {
-					d = "//" + value
+			host, err := url.Parse(urlMap[value].URL)
+			if err != nil {
+				slog.Warn(fmt.Sprintf("failed to parse hostname from URL '%s', error: %s", urlMap[value].URL, err.Error()))
+				break
+			}
+
+			dstValue := blacklistEntities.ExtractIPFromPattern(host.Hostname())
+			if len(dstValue) != 0 {
+				ip := &blacklistEntities.BlacklistedIP{
+					IPAddress:     pgtype.Inet{},
+					Description:   comment,
+					SourceID:      source,
+					ImportEventID: &event.ID,
+					DiscoveredAt:  discoveryDate,
 				}
 
-				domain, err := url.Parse(d)
-				if err == nil {
-					domainMap[domain.Hostname()] = &blacklistEntities.BlacklistedDomain{
-						URN:           value,
-						Description:   comment,
-						SourceID:      source,
-						ImportEventID: &event.ID,
-						DiscoveredAt:  discoveryDate,
-					}
+				err := ip.IPAddress.Set(dstValue)
+				if err != nil {
+					break
+				}
+
+				ipMap[ip.IPAddress.IPNet.String()] = ip
+			} else {
+				domainMap[value] = &blacklistEntities.BlacklistedDomain{
+					URN:           host.Hostname(),
+					Description:   comment,
+					SourceID:      source,
+					ImportEventID: &event.ID,
+					DiscoveredAt:  discoveryDate,
 				}
 			}
 		case "ip", "ip-addres", "ip-address":
@@ -462,6 +469,12 @@ func (s *BlackListsServiceImpl) ImportFromCSV(data [][]string, discoveredAt time
 		}
 	}
 
+	summary.Imported.IPs += int64(len(ipMap))
+	summary.Imported.Domains += int64(len(domainMap))
+	summary.Imported.URLs += int64(len(urlMap))
+	summary.Imported.Emails += int64(len(emailMap))
+	summary.Imported.Total += summary.Imported.IPs + summary.Imported.Domains + summary.Imported.URLs + summary.Imported.Emails
+
 	// async saving of all host types
 	wg := sync.WaitGroup{}
 	wg.Add(4)
@@ -477,7 +490,7 @@ func (s *BlackListsServiceImpl) ImportFromCSV(data [][]string, discoveredAt time
 			slog.Warn("failed to save IP addresses: " + err.Error())
 			summary.Errored += len(ips)
 		} else {
-			summary.Imported.IPs += rows
+			summary.Affected.IPs += rows
 		}
 
 		wg.Done()
@@ -494,7 +507,7 @@ func (s *BlackListsServiceImpl) ImportFromCSV(data [][]string, discoveredAt time
 			slog.Warn("failed to save URLs: " + err.Error())
 			summary.Errored += len(urls)
 		} else {
-			summary.Imported.URLs += rows
+			summary.Affected.URLs += rows
 		}
 
 		wg.Done()
@@ -511,7 +524,7 @@ func (s *BlackListsServiceImpl) ImportFromCSV(data [][]string, discoveredAt time
 			slog.Warn("failed to save domains: " + err.Error())
 			summary.Errored += len(domains)
 		} else {
-			summary.Imported.Domains += rows
+			summary.Affected.Domains += rows
 		}
 
 		wg.Done()
@@ -528,16 +541,38 @@ func (s *BlackListsServiceImpl) ImportFromCSV(data [][]string, discoveredAt time
 			slog.Warn("failed to save emails: " + err.Error())
 			summary.Errored += len(emails)
 		} else {
-			summary.Imported.Emails += rows
+			summary.Affected.Emails += rows
 		}
 
 		wg.Done()
 	}()
 
 	wg.Wait()
+	summary.Affected.Total = summary.Affected.IPs + summary.Affected.Domains + summary.Affected.URLs + summary.Affected.Emails
 
 	// saving import event updates
-	summary.Imported.Total = summary.Imported.IPs + summary.Imported.Domains + summary.Imported.URLs + summary.Imported.Emails
+	hosts, err := s.RetrieveHostsByFilter(blacklistEntities.BlacklistSearchFilter{
+		Limit:         int(summary.Imported.Total) * 2,
+		ImportEventID: event.ID,
+	})
+
+	if err != nil {
+		return blacklistEntities.BlacklistImportEvent{}, nil
+	}
+
+	// count by type
+	for _, h := range hosts {
+		switch h.Type {
+		case "ip":
+			summary.New.IPs++
+		case "url":
+			summary.New.URLs++
+		case "domain":
+			summary.New.Domains++
+		case "email":
+			summary.New.Emails++
+		}
+	}
 
 	event.Summary = datatypes.NewJSONType(summary)
 	event.IsComplete = true

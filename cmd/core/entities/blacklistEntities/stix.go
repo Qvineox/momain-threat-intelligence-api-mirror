@@ -100,7 +100,18 @@ func (s *STIX2Object) ToBlacklisted(extractAll bool) (*BlacklistedIP, *Blacklist
 		slog.Warn("indicator vendor not found")
 	}
 
-	if slices.Contains(s.Labels, "misp:type=\"ip-src\"") {
+	if slices.Contains(s.Labels, "misp:type=\"hostname\"") { // domain only
+		domain_ = &BlacklistedDomain{
+			URN:          extractValueFromPattern(s.Pattern),
+			Description:  s.Description,
+			SourceID:     sourceID,
+			DiscoveredAt: s.ValidFrom,
+		}
+
+		return nil, domain_, nil, nil, nil
+	}
+
+	if slices.Contains(s.Labels, "misp:type=\"ip-src\"") || slices.Contains(s.Labels, "misp:type=\"ip-dst\"") { // ip only
 		value := ExtractIPFromPattern(s.Pattern)
 		ip_ = &BlacklistedIP{
 			IPAddress:    pgtype.Inet{},
@@ -122,9 +133,29 @@ func (s *STIX2Object) ToBlacklisted(extractAll bool) (*BlacklistedIP, *Blacklist
 	// parsing URL destination
 	// this could also be IP with path
 
-	// find ip_ in pattern
-	if extractAll {
-		dstValue := ExtractIPFromPattern(s.Pattern)
+	if slices.Contains(s.Labels, "misp:type=\"url\"") { // url and domain/ip
+		url_ = &BlacklistedURL{
+			URL:          extractValueFromPattern(s.Pattern),
+			Description:  s.Description,
+			SourceID:     sourceID,
+			DiscoveredAt: s.ValidFrom,
+		}
+
+		if !strings.Contains(url_.URL, "http") {
+			url_.URL = "//" + url_.URL
+		}
+
+		if !extractAll {
+			return nil, nil, url_, nil, nil
+		}
+
+		host, err := url.Parse(url_.URL)
+		if err != nil {
+			slog.Warn(fmt.Sprintf("failed to parse hostname from URL '%s', error: %s", url_.URL, err.Error()))
+			return nil, nil, url_, nil, nil
+		}
+
+		dstValue := ExtractIPFromPattern(host.Hostname())
 		if len(dstValue) != 0 {
 			ip_ = &BlacklistedIP{
 				IPAddress:    pgtype.Inet{},
@@ -137,42 +168,17 @@ func (s *STIX2Object) ToBlacklisted(extractAll bool) (*BlacklistedIP, *Blacklist
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
-		}
-	}
 
-	if slices.Contains(s.Labels, "misp:type=\"url\"") {
-		url_ = &BlacklistedURL{
-			URL:          extractValueFromPattern(s.Pattern),
-			Description:  s.Description,
-			SourceID:     sourceID,
-			DiscoveredAt: s.ValidFrom,
-		}
-
-		if !extractAll {
-			return nil, nil, url_, nil, nil
-		}
-
-		// domain should be ejected only if IP not provided
-		if ip_ == nil {
-			if !strings.Contains(url_.URL, "http") {
-				url_.URL = "//" + url_.URL
+			return ip_, nil, url_, nil, err
+		} else {
+			domain_ = &BlacklistedDomain{
+				URN:          host.Hostname(),
+				Description:  s.Description,
+				SourceID:     sourceID,
+				DiscoveredAt: s.ValidFrom,
 			}
 
-			domain, err := url.Parse(url_.URL)
-			if err == nil {
-				if len(domain.Hostname()) == 0 {
-					slog.Warn(fmt.Sprintf("hostname from URL '%s' in empty", url_.URL))
-				}
-
-				domain_ = &BlacklistedDomain{
-					URN:          domain.Hostname(),
-					Description:  s.Description,
-					SourceID:     sourceID,
-					DiscoveredAt: s.ValidFrom,
-				}
-			} else {
-				slog.Warn(fmt.Sprintf("failed to parse hostname from URL '%s', error: %s", url_.URL, err.Error()))
-			}
+			return nil, domain_, url_, nil, err
 		}
 	}
 

@@ -11,3 +11,4 @@ docs/examples
 /configs/config.test.static.json
 /tls/
 /scripts/http/env/http-client.env.json
+/test/files/
